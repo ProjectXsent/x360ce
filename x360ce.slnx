@@ -1,0 +1,117 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM" />
+    <Platform Name="iPhone" />
+    <Platform Name="iPhoneSimulator" />
+    <Platform Name="Win32" />
+    <Platform Name="Win32+APP" />
+    <Platform Name="x64" />
+    <Platform Name="X64+APP" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="x360ce.sln.vsspell" />
+  </Folder>
+  <Folder Name="/Support/">
+    <File Path="x360ce/Support/changelog.txt" />
+    <File Path="x360ce/Support/ReadMe.RTF" />
+    <File Path="x360ce/Support/usb-detection.pdf" />
+  </Folder>
+  <Folder Name="/v3.x/">
+    <Project Path="x360ce/Common/Common.vcxproj">
+      <Platform Solution="*|Any CPU" Project="Win32" />
+      <Platform Solution="*|ARM" Project="Win32" />
+      <Platform Solution="*|iPhone" Project="Win32" />
+      <Platform Solution="*|iPhoneSimulator" Project="Win32" />
+      <Platform Solution="*|Win32+APP" Project="Win32" />
+      <Platform Solution="*|X64+APP" Project="x64" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="*|ARM" Project="false" />
+      <Build Solution="*|iPhone" Project="false" />
+      <Build Solution="*|iPhoneSimulator" Project="false" />
+    </Project>
+    <Project Path="x360ce/dinput8/dinput8.vcxproj">
+      <Platform Solution="*|Any CPU" Project="Win32" />
+      <Platform Solution="*|ARM" Project="Win32" />
+      <Platform Solution="*|iPhone" Project="Win32" />
+      <Platform Solution="*|iPhoneSimulator" Project="Win32" />
+      <Platform Solution="*|Win32+APP" Project="Win32" />
+      <Platform Solution="*|X64+APP" Project="x64" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="*|ARM" Project="false" />
+      <Build Solution="*|iPhone" Project="false" />
+      <Build Solution="*|iPhoneSimulator" Project="false" />
+    </Project>
+    <Project Path="x360ce/ditool/ditool.vcxproj">
+      <Platform Project="Win32" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="*|ARM" Project="false" />
+      <Build Solution="*|iPhone" Project="false" />
+      <Build Solution="*|iPhoneSimulator" Project="false" />
+      <Build Solution="*|x64" Project="false" />
+      <Build Solution="*|X64+APP" Project="false" />
+    </Project>
+    <Project Path="x360ce/InputHook/InputHook.vcxproj">
+      <Platform Solution="*|Any CPU" Project="Win32" />
+      <Platform Solution="*|ARM" Project="Win32" />
+      <Platform Solution="*|iPhone" Project="Win32" />
+      <Platform Solution="*|iPhoneSimulator" Project="Win32" />
+      <Platform Solution="*|Win32+APP" Project="Win32" />
+      <Platform Solution="*|X64+APP" Project="x64" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="*|ARM" Project="false" />
+      <Build Solution="*|iPhone" Project="false" />
+      <Build Solution="*|iPhoneSimulator" Project="false" />
+    </Project>
+    <Project Path="x360ce/x360ce/x360ce.vcxproj">
+      <Platform Solution="*|Any CPU" Project="Win32" />
+      <Platform Solution="*|ARM" Project="Win32" />
+      <Platform Solution="*|iPhone" Project="Win32" />
+      <Platform Solution="*|iPhoneSimulator" Project="Win32" />
+      <Platform Solution="*|Win32+APP" Project="Win32" />
+      <Platform Solution="*|X64+APP" Project="x64" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="*|ARM" Project="false" />
+      <Build Solution="*|iPhone" Project="false" />
+      <Build Solution="*|iPhoneSimulator" Project="false" />
+    </Project>
+  </Folder>
+  <Project Path="x360ce.App.3x/x360ce.App.3.csproj">
+    <Platform Solution="*|Win32" Project="x86" />
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="x360ce.App.4x/x360ce.App.4.csproj">
+    <Platform Solution="*|Win32" Project="x86" />
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="x360ce.Data/x360ce.Data.sqlproj">
+    <Platform Project="AnyCPU" />
+    <Build Solution="*|ARM" />
+    <Build Solution="*|iPhone" />
+    <Build Solution="*|iPhoneSimulator" />
+    <Deploy Solution="*|ARM" />
+    <Deploy Solution="*|iPhone" />
+    <Deploy Solution="*|iPhoneSimulator" />
+  </Project>
+  <Project Path="x360ce.Engine/x360ce.Engine.csproj">
+    <Platform Solution="*|Win32" Project="x86" />
+    <Platform Solution="*|Win32+APP" Project="x86" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|X64+APP" Project="x64" />
+    <Build Solution="*|Win32" Project="false" />
+    <Build Solution="*|x64" Project="false" />
+  </Project>
+  <Project Path="x360ce.Web/x360ce.Web.csproj">
+    <Platform Solution="*|Win32" Project="x86" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="Release|Win32+APP" Project="x86" />
+    <Platform Solution="Release|X64+APP" Project="x64" />
+    <Build Solution="*|Win32" Project="false" />
+    <Build Solution="*|Win32+APP" Project="false" />
+    <Build Solution="*|x64" Project="false" />
+    <Build Solution="*|X64+APP" Project="false" />
+  </Project>
+  <Properties Name="Performance">
+    <Property Name="HasPerformanceSessions" Value="true" />
+  </Properties>
+</Solution>
