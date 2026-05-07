@@ -37,7 +37,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			{
 				lock (currentLock)
 				{
-					if (_Current is null)
+					if (_Current == null)
 					{
 						_Current = new LogHelper();
 						// Won't trigger application is closing by using the close button.
@@ -155,14 +155,14 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		public static void AddParameters(ref string s, IDictionary parameters, TraceFormat tf = TraceFormat.Html)
 		{
-			if (parameters is null)
+			if (parameters == null)
 				return;
 			bool isHtml = (tf == TraceFormat.Html);
 			foreach (var key in parameters.Keys)
 			{
 				var pv = parameters[key];
 				var k = string.Format("{0}", key);
-				string v = pv is null
+				string v = pv == null
 					? "null"
 					: pv is DateTime
 						? string.Format("{0:yyyy-MM-dd HH:mm:ss.fff}", pv)
@@ -240,10 +240,10 @@ namespace JocysCom.ClassLibrary.Runtime
 		public static void AddRow(ref string s, string key = null, string value = null)
 		{
 			// If empty row then...
-			if (key is null && value is null)
+			if (key == null && value == null)
 				s += "<tr><td colspan=\"2\"> </td></tr>";
 			// If head row then...
-			else if (key != null && value is null)
+			else if (key != null && value == null)
 				s += string.Format("<tr><th colspan=\"2\" class=\"Head\">{0}</th></tr>", key);
 			// if key anbd value specified.
 			else
@@ -310,7 +310,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		#region Write Log
 
-		public delegate void WriteLogDelegate(string message, TraceLevel type);
+		public delegate void WriteLogDelegate(string message, EventLogEntryType type);
 
 		/// <summary>
 		/// User can override these methods. Default methods are assigned.
@@ -325,7 +325,7 @@ namespace JocysCom.ClassLibrary.Runtime
 #endif
 		public WriteLogDelegate WriteLogFile = new WriteLogDelegate(_WriteFile);
 
-		internal static void _WriteConsole(string message, TraceLevel type)
+		internal static void _WriteConsole(string message, EventLogEntryType type)
 		{
 			// If user can see interface (console) then write to the console.
 			if (Environment.UserInteractive)
@@ -340,12 +340,12 @@ namespace JocysCom.ClassLibrary.Runtime
 		// Requires 'EventLogInstaller' requires reference to System.Configuration.Install.dll
 		public static EventLogInstaller AppEventLogInstaller;
 
-		internal static void _WriteEvent(string message, TraceLevel type)
+		internal static void _WriteEvent(string message, EventLogEntryType type)
 		{
 			var li = AppEventLogInstaller;
-			if (li is null)
+			if (li == null)
 				return;
-			var ei = new EventInstance(0, 0, ConvertToEventLogEntryType(type));
+			var ei = new EventInstance(0, 0, type);
 			var el = new EventLog();
 			el.Log = li.Log;
 			el.Source = li.Source;
@@ -353,27 +353,12 @@ namespace JocysCom.ClassLibrary.Runtime
 			el.Close();
 		}
 
-		public static EventLogEntryType ConvertToEventLogEntryType(TraceLevel level)
-		{
-			switch (level)
-			{
-				case TraceLevel.Error:
-					return EventLogEntryType.Error;
-				case TraceLevel.Warning:
-					return EventLogEntryType.Warning;
-				case TraceLevel.Info:
-					return EventLogEntryType.Information;
-				default:
-					return default;
-			}
-		}
-
 #endif
 
 		public IO.LogFileWriter FileWriter { get { return _FileWriter; } }
 		IO.LogFileWriter _FileWriter;
 
-		internal static void _WriteFile(string message, TraceLevel type)
+		internal static void _WriteFile(string message, EventLogEntryType type)
 		{
 			// If LogStreamWriter is not null (check inside the function) then write to file.
 			Current.FileWriter.WriteLine(message);
@@ -383,7 +368,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// Writes log message to various destination types (console window, file, event and custom)
 		/// </summary>
 		/// <remarks>Appends line break.</remarks>
-		public void WriteLog(string message, TraceLevel type)
+		public void WriteLog(string message, EventLogEntryType type)
 		{
 			// If console logging available then...
 			if (WriteLogConsole != null)
@@ -398,27 +383,26 @@ namespace JocysCom.ClassLibrary.Runtime
 #elif NETCOREAPP
 #else
 			// If event logging is enabled and important then write event.
-			if (WriteLogEvent != null && type != TraceLevel.Info)
+			if (WriteLogEvent != null && type != EventLogEntryType.Information)
 				WriteLogEvent(message, type);
 #endif
 		}
 
 		public static void WriteError(Exception ex)
 		{
-			if (ex is null)
+			if (ex == null)
 				throw new ArgumentNullException(nameof(ex));
-			Current.WriteLog(ex.ToString(), TraceLevel.Error);
+			Current.WriteLog(ex.ToString(), EventLogEntryType.Error);
 		}
 
-		
 		public static void WriteWarning(string format, params object[] args)
 		{
-			Current.WriteLog(args != null && args.Length > 0 ? string.Format(format, args) : format, TraceLevel.Warning);
+			Current.WriteLog(args != null && args.Length > 0 ? string.Format(format, args) : format, EventLogEntryType.Warning);
 		}
 
 		public static void WriteInfo(string format, params object[] args)
 		{
-			Current.WriteLog(args != null && args.Length > 0 ? string.Format(format, args) : format, TraceLevel.Info);
+			Current.WriteLog(args != null && args.Length > 0 ? string.Format(format, args) : format, EventLogEntryType.Information);
 		}
 
 		#endregion
@@ -440,7 +424,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			if (!IsLive)
 			{
 				string rm = "(" + RunMode + ")";
-				if (s is null)
+				if (s == null)
 					s = rm;
 				s = s.TrimEnd();
 				if (!s.Contains(rm))
@@ -491,7 +475,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			// Group.
 			//------------------------------------------------------
 			var notifyNow =
-				ex is null ||
+				ex == null ||
 				!GroupingEnabled ||
 				GroupExceptions(group, ex, subject, body, action);
 			if (notifyNow)
@@ -506,7 +490,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// </summary>
 		bool GroupExceptions(List<ExceptionGroup> group, Exception ex, string subject, string body, Action<Exception, string, string> action)
 		{
-			var value = ex.StackTrace is null
+			var value = ex.StackTrace == null
 				? string.Format("{0}: {1}", ex.GetType().Name, ex.Message)
 				: ex.StackTrace.ToString();
 			// Get checksum.
@@ -521,8 +505,8 @@ namespace JocysCom.ClassLibrary.Runtime
 			lock (group)
 			{
 				var ei = group.FirstOrDefault(x => x.Checksum == checksum);
-				var notifyNow = ei is null;
-				if (ei is null)
+				var notifyNow = ei == null;
+				if (ei == null)
 				{
 					ei = new ExceptionGroup(group, GroupingDelay, ex, checksum, subject, body, action);
 					group.Add(ei);
@@ -608,7 +592,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		{
 			var asm = Assembly.GetEntryAssembly();
 			string s = "Unknown Entry Assembly";
-			if (asm is null && ex != null)
+			if (asm == null && ex != null)
 			{
 				var frames = new StackTrace(ex).GetFrames();
 				if (frames != null)
@@ -624,7 +608,7 @@ namespace JocysCom.ClassLibrary.Runtime
 					}
 				}
 			}
-			if (asm is null)
+			if (asm == null)
 			{
 				asm = Assembly.GetCallingAssembly();
 			}
@@ -666,14 +650,22 @@ namespace JocysCom.ClassLibrary.Runtime
 			AddStyle(ref s);
 			//------------------------------------------------------
 			StartTable(ref s);
-			var ai = Configuration.AssemblyInfo.Entry;
 			var rm = RunMode;
 			if (!string.IsNullOrEmpty(rm))
 				rm = " (" + rm + ")";
+			var asm = System.Reflection.Assembly.GetEntryAssembly();
+			if (asm == null)
+				Assembly.GetCallingAssembly();
+			if (asm == null)
+				Assembly.GetExecutingAssembly();
 			AddRow(ref s, "Product");
-			var name = ai.Company + " " + ai.Product + " " + ai.Version.ToString(4);
-			ApplyRunModeSuffix(ref name);
-			AddRow(ref s, "Name", name);
+			if (asm != null)
+			{
+				var ai = new Configuration.AssemblyInfo(asm);
+				var name = ai.Company + " " + ai.Product + " " + ai.Version.ToString(4);
+				ApplyRunModeSuffix(ref name);
+				AddRow(ref s, "Name", name);
+			}
 			AddRow(ref s, "Machine", System.Environment.MachineName);
 			AddRow(ref s, "Username", System.Environment.UserName);
 
@@ -702,7 +694,6 @@ namespace JocysCom.ClassLibrary.Runtime
 			);
 			AddRow(ref s, "OS Version", osVersion);
 #endif
-			var asm = ai.Assembly;
 			if (asm != null)
 			{
 				var bd = Configuration.AssemblyInfo.GetBuildDateTime(asm.Location);
@@ -755,7 +746,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		public void ExceptionInfoRecursive(ref string s, Exception ex)
 		{
-			if (ex is null)
+			if (ex == null)
 				return;
 			StackFrame frame = GetFormStackFrame(ex);
 			AddRow(ref s, string.Format("{0}: <span class=\"Grey\">{1}</span>", GetClassName(ex), ex.Message));
@@ -789,7 +780,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			return false;
 #else // .NET Framework
 			var ex2 = ex as SqlException;
-			if (ex2 is null)
+			if (ex2 == null)
 				return false;
 			for (int i = 0; i <= ex2.Errors.Count - 1; i++)
 			{
@@ -812,7 +803,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		public bool FillLoaderException(ref string s, Exception ex)
 		{
 			var ex2 = ex as ReflectionTypeLoadException;
-			if (ex2 is null)
+			if (ex2 == null)
 				return false;
 			var i = 0;
 			foreach (var ex4 in ex2.LoaderExceptions)
@@ -827,7 +818,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		public static void FillOther(ref string s, Exception ex)
 		{
-			if (ex is null)
+			if (ex == null)
 				return;
 			var parameters = new Dictionary<string, object>();
 			var pis = ex.GetType().GetProperties();
@@ -853,7 +844,7 @@ namespace JocysCom.ClassLibrary.Runtime
 					value = pi.GetValue(ex);
 				}
 				catch (Exception) { }
-				if (value is null)
+				if (value == null)
 					continue;
 				var key = "." + pi.Name;
 				if (pi.Name == nameof(Exception.HResult) && value is int)
@@ -865,7 +856,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		public static void Add(IDictionary data, object name, object value)
 		{
-			if (data is null)
+			if (data == null)
 				throw new ArgumentNullException(nameof(data));
 			var i = 0;
 			// Loop until success.
@@ -887,7 +878,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		public static void Add(Exception ex, string name, object value)
 		{
-			if (ex is null)
+			if (ex == null)
 				throw new ArgumentNullException(nameof(ex));
 			var prefix = ex.GetType().Name;
 			var key = string.Format("{0}.{1}", prefix, name);

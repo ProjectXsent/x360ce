@@ -27,21 +27,22 @@ namespace x360ce.App
 			{
 				// Run command directly.
 				var args = new string[] { argument };
-				ProcessAdminCommands(args);
+				ProcessAdminCommands(true, args);
 				return true;
 			}
 			else
 			{
 				// Run copy of x360ce as Administrator.
-				JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+				JocysCom.ClassLibrary.Win32.UacHelper.RunElevated(
 					Application.ExecutablePath,
-					argument, isElevated: true		
+					argument,
+					System.Diagnostics.ProcessWindowStyle.Hidden
 				);
 				return false;
 			}
 		}
 
-		static bool ProcessAdminCommands(string[] args)
+		static bool ProcessAdminCommands(bool direct, string[] args)
 		{
 			// Requires System.Configuration.Installl reference.
 			var ic = new System.Configuration.Install.InstallContext(null, args);

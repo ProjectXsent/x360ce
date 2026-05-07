@@ -1,7 +1,4 @@
-﻿#if NETCOREAPP // .NET Core
-#elif NETSTANDARD // .NET Standard
-#else // .NET Framework
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace JocysCom.ClassLibrary.Services.SimpleService
 {
@@ -15,4 +12,3 @@ namespace JocysCom.ClassLibrary.Services.SimpleService
 
 	}
 }
-#endif

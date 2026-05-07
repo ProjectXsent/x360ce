@@ -157,58 +157,62 @@ namespace x360ce.Engine.Data
 
 		#region Ignored properties used by application to store various device states.
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public bool DeviceChanged;
 
 		/// <summary>DInput Device State.</summary>
-		[XmlIgnore, NonSerialized]
-		public Device Device;
+		[XmlIgnore]
+		public Joystick Device;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public DeviceObjectItem[] DeviceObjects;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public DeviceEffectItem[] DeviceEffects;
 
 		/// <summary>DInput JoystickState State.</summary>
-		[XmlIgnore, NonSerialized]
-		public object DeviceState;
+		[XmlIgnore]
+		public JoystickState JoState;
+
+		/// <summary>DInput JoystickUpdate States.</summary>
+		[XmlIgnore]
+		public JoystickUpdate[] JoUpdate;
 
 		/// <summary>X360CE custom DirectInput state used for configuration.</summary>
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public CustomDiState DiState;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public CustomDiUpdate[] DiUpdates;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public long DiStateTime;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public CustomDiState OldDiState;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public CustomDiUpdate[] OldDiUpdates;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public long OldDiStateTime;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public CustomDiState OrgDiState;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public long OrgDiStateTime;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public ForceFeedbackState FFState;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public bool? IsExclusiveMode;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public string DevHardwareIds;
 
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public string HidHardwareIds;
 
 		[XmlIgnore]
@@ -242,7 +246,7 @@ namespace x360ce.Engine.Data
 				return
 					!IsKeyboard &&
 					!IsMouse &&
-					//ConnectionClass != JocysCom.ClassLibrary.Win32.DEVCLASS.SYSTEM &&
+					ConnectionClass != JocysCom.ClassLibrary.Win32.DEVCLASS.SYSTEM &&
 					// Device Id must be set.
 					!string.IsNullOrEmpty(HidDeviceId);
 			}

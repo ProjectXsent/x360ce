@@ -14,10 +14,6 @@ namespace x360ce.Engine.Data
 		Guid IUserRecord.Id { get {return SettingId; }  set { SettingId = value; } }
 
 		[XmlIgnore]
-		public string InstanceId
-			=> EngineHelper.GetID(InstanceGuid);
-
-		[XmlIgnore]
 		public bool IsOnline
 		{
 			get { return _IsOnline; }
@@ -26,7 +22,7 @@ namespace x360ce.Engine.Data
 		bool _IsOnline;
 
 		/// <summary>XInput state converted from X360CE custom DirectInput state.</summary>
-		[XmlIgnore, NonSerialized]
+		[XmlIgnore]
 		public Gamepad XiState;
 
 		/// <summary>

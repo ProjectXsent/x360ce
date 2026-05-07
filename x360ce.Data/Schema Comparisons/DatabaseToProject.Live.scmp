@@ -3,7 +3,7 @@
   <Version>10</Version>
   <SourceModelProvider>
     <ConnectionBasedModelProvider>
-      <ConnectionString>Data Source=S001;Initial Catalog=x360ce;Persist Security Info=False;User ID=x360ceAdmin;Pooling=False;MultipleActiveResultSets=False;Connect Timeout=60;Encrypt=False;TrustServerCertificate=False</ConnectionString>
+      <ConnectionString>Data Source=S001;Initial Catalog=x360ce;Persist Security Info=True;User ID=x360ceAdmin;Pooling=False;MultipleActiveResultSets=False;Connect Timeout=60;Encrypt=False;TrustServerCertificate=True</ConnectionString>
     </ConnectionBasedModelProvider>
   </SourceModelProvider>
   <TargetModelProvider>
@@ -37,10 +37,6 @@
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
-        <Name>IgnoreIndexesStatisticsOnEnclaveEnabledColumns</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
         <Name>BlockOnPossibleDataLoss</Name>
         <Value>True</Value>
       </PropertyElementName>
@@ -66,10 +62,6 @@
       </PropertyElementName>
       <PropertyElementName>
         <Name>DisableAndReenableDdlTriggers</Name>
-        <Value>True</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>DisableIndexesForDataPhase</Name>
         <Value>True</Value>
       </PropertyElementName>
       <PropertyElementName>
@@ -114,10 +106,6 @@
       </PropertyElementName>
       <PropertyElementName>
         <Name>GenerateSmartDefaults</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>HashObjectNamesInLogs</Name>
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
@@ -281,20 +269,8 @@
         <Value>True</Value>
       </PropertyElementName>
       <PropertyElementName>
-        <Name>PreserveIdentityLastValues</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
         <Name>RegisterDataTierApplication</Name>
         <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>RebuildIndexesOfflineForDataPhase</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>RestoreSequenceCurrentValue</Name>
-        <Value>True</Value>
       </PropertyElementName>
       <PropertyElementName>
         <Name>ScriptDatabaseCollation</Name>
@@ -355,10 +331,6 @@
       <PropertyElementName>
         <Name>AllowDropBlockingAssemblies</Name>
         <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>DoNotEvaluateSqlCmdVariables</Name>
-        <Value>True</Value>
       </PropertyElementName>
       <PropertyElementName>
         <Name>DoNotDropAggregates</Name>
@@ -429,22 +401,6 @@
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
-        <Name>IgnoreDatabaseWorkloadGroups</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>DoNotDropDatabaseWorkloadGroups</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>IgnoreWorkloadClassifiers</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>DoNotDropWorkloadClassifiers</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
         <Name>DoNotDropDefaults</Name>
         <Value>False</Value>
       </PropertyElementName>
@@ -477,15 +433,7 @@
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
-        <Name>DoNotDropExternalStreamingJobs</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
         <Name>DoNotDropExternalTables</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>DoNotDropExternalStreams</Name>
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
@@ -729,15 +677,7 @@
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>
-        <Name>ExcludeExternalStreamingJobs</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
         <Name>ExcludeExternalTables</Name>
-        <Value>False</Value>
-      </PropertyElementName>
-      <PropertyElementName>
-        <Name>ExcludeExternalStreams</Name>
         <Value>False</Value>
       </PropertyElementName>
       <PropertyElementName>

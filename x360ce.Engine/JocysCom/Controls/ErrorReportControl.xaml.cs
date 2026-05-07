@@ -1,4 +1,7 @@
-﻿using JocysCom.ClassLibrary.Configuration;
+﻿#if NETCOREAPP // .NET Core
+#elif NETSTANDARD // .NET Standard
+#else // .NET Framework
+using JocysCom.ClassLibrary.Configuration;
 using JocysCom.ClassLibrary.Runtime;
 using mshtml;
 using System;
@@ -17,23 +20,21 @@ namespace JocysCom.ClassLibrary.Controls
 	/// </summary>
 	public partial class ErrorReportControl : UserControl
 	{
-
 		public ErrorReportControl()
 		{
-			InitHelper.InitTimer(this, InitializeComponent);
+			InitializeComponent();
 			if (ControlsHelper.IsDesignMode(this))
 				return;
 			ErrorsFolderTextBox.Text = LogHelper.Current.LogsFolder;
+			MainBrowser.LoadCompleted += MainBrowser_LoadCompleted;
 			RefreshErrorsComboBox();
 			StatusLabel.Content = "";
 		}
 
 		void RefreshErrorsComboBox()
 		{
-			var dir = new DirectoryInfo(LogHelper.Current.LogsFolder);
-			if (!dir.Exists)
-				return;
 			var asm = new AssemblyInfo();
+			var dir = new DirectoryInfo(LogHelper.Current.LogsFolder);
 			var errors = dir.GetFiles("*.htm").OrderByDescending(x => x.CreationTime).ToArray();
 			SubjectTextBox.Text = string.Format("Problem with {0}", asm.Product);
 			ErrorComboBox.ItemsSource = errors;
@@ -46,22 +47,17 @@ namespace JocysCom.ClassLibrary.Controls
 
 		private void MainBrowser_LoadCompleted(object sender, NavigationEventArgs e)
 		{
-#if NETCOREAPP // .NET Core
-#elif NETSTANDARD // .NET Standard
-#else // .NET Framework
-
 			var doc = (IHTMLDocument3)MainBrowser.Document;
-			if (doc is null)
+			if (doc == null)
 				return;
 			var body = doc.getElementsByTagName("body").OfType<IHTMLElement>().First();
-			if (body is null)
+			if (body == null)
 				return;
 			//var doc2 = (IHTMLDocument2)MainBrowser.Document;
 			//doc2.charset = "utf-8";
 			//MainBrowser.Refresh();
 			body.insertAdjacentHTML("afterbegin", "<p>Hi,</p><p></p><p>I would like to report a problem. Error details attached below:</p>");
 			body.setAttribute("contentEditable", "true");
-#endif
 		}
 
 		private void OpenErrorsFolder_Click(object sender, RoutedEventArgs e)
@@ -77,7 +73,7 @@ namespace JocysCom.ClassLibrary.Controls
 		private void ErrorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
 			var item = ErrorComboBox.SelectedItem as FileInfo;
-			if (item is null)
+			if (item == null)
 			{
 				MainBrowser.Navigate("about:blank");
 			}
@@ -108,36 +104,24 @@ namespace JocysCom.ClassLibrary.Controls
 
 		public string GetBody()
 		{
-#if NETCOREAPP // .NET Core
-			throw new NotImplementedException();
-#elif NETSTANDARD // .NET Standard
-			throw new NotImplementedException();
-#else // .NET Framework
 			var doc = (IHTMLDocument3)MainBrowser.Document;
-			if (doc is null)
+			if (doc == null)
 				return null;
 			var body = doc.getElementsByTagName("body").OfType<IHTMLElement>().First();
-			if (body is null)
+			if (body == null)
 				return null;
 			return body.innerHTML;
-#endif
 		}
 
 		public string GetMetaContent(string name)
 		{
-#if NETCOREAPP // .NET Core
-			throw new NotImplementedException();
-#elif NETSTANDARD // .NET Standard
-			throw new NotImplementedException();
-#else // .NET Framework
 			var doc = (IHTMLDocument3)MainBrowser.Document;
-			if (doc is null)
+			if (doc == null)
 				return null;
 			var meta = doc.getElementsByName(name).OfType<IHTMLMetaElement>().FirstOrDefault();
-			if (meta is null)
+			if (meta == null)
 				return null;
 			return meta.content;
-#endif
 		}
 
 		private void SendErrorButton_Click(object sender, RoutedEventArgs e)
@@ -166,26 +150,6 @@ namespace JocysCom.ClassLibrary.Controls
 		public event EventHandler<EventArgs<List<MailMessage>>> SendMessages;
 		public event EventHandler ClearErrors;
 
-		private void UserControl_Loaded(object sender, RoutedEventArgs e)
-		{
-			MainBrowser.LoadCompleted += MainBrowser_LoadCompleted;
-			// Monitor parent Window closing for correct disposal of resources.
-			var window = ControlsHelper.GetParent<Window>(this);
-			window.Closing += (sender2, e2) => isWindowClosing = !e2.Cancel;
-		}
-
-		bool isWindowClosing = false;
-
-		private void UserControl_Unloaded(object sender, RoutedEventArgs e)
-		{
-			MainBrowser.LoadCompleted -= MainBrowser_LoadCompleted;
-			// Dispose resources on parent Window closing.
-			if (isWindowClosing)
-			{
-				MainBrowser.Dispose();
-			}
-		}
-
 	}
 }
-
+#endif

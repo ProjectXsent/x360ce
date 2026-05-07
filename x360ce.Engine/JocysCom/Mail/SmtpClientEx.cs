@@ -33,7 +33,7 @@ namespace JocysCom.ClassLibrary.Mail
 			{
 				lock (currentLock)
 				{
-					if (_Current is null)
+					if (_Current == null)
 						_Current = new SmtpClientEx();
 					return _Current;
 				}
@@ -73,7 +73,7 @@ namespace JocysCom.ClassLibrary.Mail
 		{
 			get
 			{
-				if (localHostName is null)
+				if (localHostName == null)
 					return null;
 				return (string)localHostName.GetValue(this);
 			}
@@ -105,7 +105,7 @@ namespace JocysCom.ClassLibrary.Mail
 
 		public static void SetErrorCode(Exception ex, int errorCode)
 		{
-			if (ex is null)
+			if (ex == null)
 				throw new ArgumentNullException(nameof(ex));
 			if (errorCode == 0)
 				return;
@@ -141,9 +141,8 @@ namespace JocysCom.ClassLibrary.Mail
 #if NETSTANDARD // .NET Standard
 #elif NETCOREAPP // .NET Core
 #else // .NET Framework
-			System.Configuration.Configuration config;
-			var settings = GetCurrentSmtpSettings(out config);
-			settingsFrom = settings.From;
+			var x = GetCurrentConfiguration();
+			settingsFrom = getFrom();
 #endif
 			SmtpFrom = sp.Parse("SmtpFrom", settingsFrom);
 			var credentials = (NetworkCredential)Credentials ?? new NetworkCredential();
@@ -191,7 +190,7 @@ namespace JocysCom.ClassLibrary.Mail
 		static System.Configuration.Configuration GetCurrentConfiguration()
 		{
 			// If executable then...
-			if (HttpRuntime.IISVersion is null)
+			if (HttpRuntime.IISVersion == null)
 				return System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
 			// If web request then...
 			if (HttpContext.Current != null
@@ -208,6 +207,13 @@ namespace JocysCom.ClassLibrary.Mail
 			// Get Mail settings.
 			var settings = NetSectionGroup.GetSectionGroup(config).MailSettings;
 			return settings.Smtp;
+		}
+
+		private string getFrom()
+		{
+			System.Configuration.Configuration config;
+			var settings = GetCurrentSmtpSettings(out config);
+			return settings.From;
 		}
 
 #endif
@@ -256,8 +262,8 @@ namespace JocysCom.ClassLibrary.Mail
 				return;
 			}
 			// Send Email.
-			// SUPPRESS: CWE-201: Information Exposure Through Send Data
-			// SUPPRESS: CWE-209: Information Exposure Through an Error Message
+			// CWE-201: Information Exposure Through Send Data
+			// CWE-209: Information Exposure Through an Error Message
 			// Note: Mitigated by design. Generic shared method.
 			Send(message);
 		}
@@ -297,7 +303,7 @@ namespace JocysCom.ClassLibrary.Mail
 		/// <param name="message"></param>
 		public static void AddSmtpSendCopyToRecipients(MailMessage message, string recipients)
 		{
-			if (message is null)
+			if (message == null)
 				throw new ArgumentNullException(nameof(message));
 			var addresses = MailHelper.ParseEmailAddress(recipients);
 			var hosts = addresses.Select(x => x.Host.ToLower()).Distinct().ToArray();

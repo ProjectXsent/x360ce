@@ -12,7 +12,7 @@ namespace x360ce.App.DInput
 	public class VirtualDriverInstaller
 	{
 
-		#region ■ Install/Uninstall ViGEmBus
+		#region Install/Uninstall ViGEmBus
 
 		static Guid GUID_DEVINTERFACE_BUSENUM_VIGEM = new Guid("96E42B22-F5E9-42F8-B043-ED0F932F014F");
 		public static SP_DRVINFO_DATA GetViGemBusDriverInfo()
@@ -34,10 +34,10 @@ namespace x360ce.App.DInput
 			return Path.Combine(baseDirectory, "Program Files", "ViGEm ViGEmBus");
 		}
 
-		static void ExtractViGemBusFiles()
+		static void ExtractViGemBusFiles(bool overwrite)
 		{
 			var target = GetViGEmBusPath();
-			ExtractViGemFiles("ViGEmBus", target);
+			ExtractViGemFiles("ViGEmBus", target, overwrite);
 		}
 
 		public static string[] ViGEmBusHardwareIds = { "Root\\ViGEmBus", "Nefarius\\ViGEmBus\\Gen1" };
@@ -50,17 +50,17 @@ namespace x360ce.App.DInput
 		public static void InstallViGEmBus(ProcessWindowStyle style = ProcessWindowStyle.Hidden)
 		{
 			// Extract files first.
-			ExtractViGemBusFiles();
+			ExtractViGemBusFiles(true);
 			var folder = GetViGEmBusPath();
 			var exePath = Path.Combine(folder, GetDevConPath());
 			var osString = JocysCom.ClassLibrary.Controls.IssuesControl.IssueHelper.GetRealOSVersion().Major >= 10
 				? "Win10" : "WinVS";
 			var infFile = string.Format("{0}\\{1}", osString, "ViGEmBus.inf");
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+			UacHelper.RunElevated(
 				exePath,
 				// Use last ID.
 				"install " + infFile + " " + ViGEmBusHardwareIds.Last(),
-				isElevated: true);
+				style, true);
 		}
 
 		/// <summary>
@@ -70,22 +70,22 @@ namespace x360ce.App.DInput
 		public static void UninstallViGEmBus(ProcessWindowStyle style = ProcessWindowStyle.Hidden)
 		{
 			// Extract files first.
-			ExtractViGemBusFiles();
+			ExtractViGemBusFiles(false);
 			var folder = GetViGEmBusPath();
 			var exePath = Path.Combine(folder, GetDevConPath());
 			// Remove all old instances.
 			foreach (var ViGEmBusHardwareId in ViGEmBusHardwareIds)
 			{
-				JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+				JocysCom.ClassLibrary.Win32.UacHelper.RunElevated(
 					exePath,
 					"remove " + ViGEmBusHardwareId,
-					isElevated: true);
+					style, true);
 			}
 		}
 
 		#endregion
 
-		#region ■ Install/Uninstall HidGuardian
+		#region Install/Uninstall HidGuardian
 
 		public static string GetHidGuardianPath()
 		{
@@ -93,10 +93,10 @@ namespace x360ce.App.DInput
 			return Path.Combine(baseDirectory, "Program Files", "ViGEm HidGuardian");
 		}
 
-		static void ExtractHidGuardianFiles()
+		static void ExtractHidGuardianFiles(bool overwrite)
 		{
 			var target = GetHidGuardianPath();
-			ExtractViGemFiles("HidGuardian", target);
+			ExtractViGemFiles("HidGuardian", target, overwrite);
 		}
 
 		/// <summary>
@@ -106,19 +106,19 @@ namespace x360ce.App.DInput
 		public static void InstallHidGuardian(ProcessWindowStyle style = ProcessWindowStyle.Hidden)
 		{
 			// Extract files first.
-			ExtractHidGuardianFiles();
+			ExtractHidGuardianFiles(true);
 			var folder = GetHidGuardianPath();
 			var paString = Environment.Is64BitOperatingSystem ? "x64" : "x86";
 			var infFile = string.Format("{0}\\{1}", paString, "HidGuardian.inf");
 			var exePath = Path.Combine(folder, GetDevConPath());
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+			UacHelper.RunElevated(
 				exePath,
 				"install " + infFile + " " + HidGuardianHardwareId,
-				isElevated: true);
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+				style, true);
+			UacHelper.RunElevated(
 				exePath,
 				"classfilter HIDClass upper -HidGuardian",
-				isElevated: true);
+				style, true);
 			// Fix registry permissions. 
 			var canModify = ViGEm.HidGuardianHelper.CanModifyParameters(true);
 			// Fix missing white list key.
@@ -134,17 +134,17 @@ namespace x360ce.App.DInput
 		public static void UninstallHidGuardian(ProcessWindowStyle style = ProcessWindowStyle.Hidden)
 		{
 			// Extract files first.
-			ExtractHidGuardianFiles();
+			ExtractHidGuardianFiles(false);
 			var folder = GetHidGuardianPath();
 			var exePath = Path.Combine(folder, GetDevConPath());
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+			UacHelper.RunElevated(
 				exePath,
 				"remove " + HidGuardianHardwareId,
-				isElevated: true);
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+				style, true);
+			UacHelper.RunElevated(
 				exePath,
 				"classfilter HIDClass upper !HidGuardian",
-				isElevated: true);
+				style, true);
 		}
 
 
@@ -161,20 +161,20 @@ namespace x360ce.App.DInput
 		public static void UnInstallDevice(string deviceId, ProcessWindowStyle style = ProcessWindowStyle.Hidden)
 		{
 			// Extract files first.
-			ExtractHidGuardianFiles();
+			ExtractHidGuardianFiles(true);
 			var folder = GetHidGuardianPath();
 			var exePath = Path.Combine(folder, GetDevConPath());
-			JocysCom.ClassLibrary.Windows.UacHelper.RunProcess(
+			UacHelper.RunElevated(
 				exePath,
 				"remove \"" + deviceId + "\"",
-				isElevated: true);
+				style, true);
 			// Make sure that device is re-inserted.
 			DeviceDetector.ScanForHardwareChanges();
 		}
 
 		#endregion
 
-		#region ■ Extract Helper
+		#region Extract Helper
 
 		/// <summary>
 		/// Extract resource files
@@ -182,7 +182,7 @@ namespace x360ce.App.DInput
 		/// <param name="source">Resource prefix.</param>
 		/// <param name="target">Target folder to extract.</param>
 		/// <param name="overwrite">Overwrite files at target.</param>
-		static void ExtractViGemFiles(string source, string target)
+		static void ExtractViGemFiles(string source, string target, bool overwrite)
 		{
 			// Get list of resources to extract.
 			var assembly = Assembly.GetEntryAssembly();

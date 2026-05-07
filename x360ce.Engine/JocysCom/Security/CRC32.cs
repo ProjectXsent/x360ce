@@ -109,7 +109,7 @@ namespace JocysCom.ClassLibrary.Security
 		/// </summary>
 		public static byte[] ComputeHash(string value, Encoding encoding = null)
 		{
-			if (encoding is null)
+			if (encoding == null)
 				encoding = Encoding.UTF8;
 			var bytes = encoding.GetBytes(value);
 			var hash = ComputeHash(bytes);

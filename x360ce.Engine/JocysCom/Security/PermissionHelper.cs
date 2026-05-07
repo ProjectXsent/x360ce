@@ -1,13 +1,10 @@
 ﻿using Microsoft.Win32;
-using System;
 using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement;
 using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
-
-// .NET Core: requires "System.IO.FileSystem.AccessControl" NuGet package.
 
 namespace JocysCom.ClassLibrary.Security
 {
@@ -30,70 +27,19 @@ namespace JocysCom.ClassLibrary.Security
 			}
 		}
 
-		/// <summary>
-		/// Returns true if current user can rename the file.
-		/// </summary>
-		/// <param name="fileFullName">Path to the file.</param>
-		/// <param name="user">Optional. Default current windows user.</param>
-		/// <returns>true if current user can rename the file. false if elevated permissions required.</returns>
-		public static bool CanRenameFile(string fileFullName, SecurityIdentifier user = null)
-		{
-			user = user ?? WindowsIdentity.GetCurrent().User;
-			var fileDirectory = new FileInfo(fileFullName).Directory.FullName;
-			// Check for Write permissions on the directory.
-			var hasDirectoryWriteRights = HasRights(fileDirectory, FileSystemRights.Write, user);
-			// Check for Delete permissions on the file itself.
-			var hasFileDeleteRights = HasRights(fileFullName, FileSystemRights.Delete, user);
-			// Alternative: Check for Modify permissions on the file itself.
-			var hasFileModifyRights = HasRights(fileFullName, FileSystemRights.Modify, user);
-			return (hasDirectoryWriteRights && hasFileDeleteRights) || hasFileModifyRights;
-		}
-
 		#region Users and Groups
 
 		/// <summary>
-		/// Returns all groups in the specified context.
+		/// Return all groups.
 		/// </summary>
-		/// <param name="contextType">Specifies whether the context is for the local machine or a domain.</param>
-		/// <param name="server">The server to connect to. If null, defaults to the logon server for domain contexts.</param>
-		/// <param name="container">The container within the directory to search for groups. If null, defaults to an appropriate container based on the context.</param>
-		/// <param name="samAccountName">The SAM account name to use as a filter for group search. Defaults to "*", meaning all groups.</param>
-		/// <returns>An array of <see cref="GroupPrincipal"/> objects representing the groups found.</returns>
-		/// <remarks>
-		/// The method supports both local machine and domain contexts. For domain contexts, if the <paramref name="server"/> 
-		/// is not provided, it defaults to the logon server. The <paramref name="container"/> parameter allows specifying 
-		/// a particular organizational unit (OU) to search within. If not specified, it defaults to an appropriate container 
-		/// based on the user’s DNS domain.
-		/// </remarks>
-		public static GroupPrincipal[] GetAllGroups(
-			ContextType contextType,
-			string server = null, string container = null,
-			string samAccountName = "*")
+		/// <param name="contextType">Specify local machine or domain context.</param>
+		/// <returns></returns>
+		public static GroupPrincipal[] GetAllGroups(ContextType contextType)
 		{
-			PrincipalContext context;
-			if (contextType == ContextType.ApplicationDirectory)
-			{
-				server = server ?? Environment.GetEnvironmentVariable("LOGONSERVER")?.Trim('\\');
-				container = container ?? ""; // "OU=Users and Groups";
-				var userDnsDomain = Environment.GetEnvironmentVariable("USERDNSDOMAIN");
-				var groups = new List<string>();
-				var dcParts = string.Join(",", userDnsDomain.Split('.').Select(part => $"DC={part}"));
-				if (!string.IsNullOrEmpty(container))
-					container += ",";
-				container += dcParts;
-				context = new PrincipalContext(contextType, server, dcParts);
-			}
-			else
-			{
-				context = new PrincipalContext(contextType);
-				if (string.IsNullOrEmpty(context.UserName))
-					return Array.Empty<GroupPrincipal>();
-			}
-			var gp = new GroupPrincipal(context, samAccountName);
+			var context = new PrincipalContext(contextType);
+			var gp = new GroupPrincipal(context, "*");
 			var ps = new PrincipalSearcher(gp);
-			return ps.FindAll().Cast<GroupPrincipal>()
-				.OrderBy(x => x.Name)
-				.ToArray();
+			return ps.FindAll().Cast<GroupPrincipal>().ToArray();
 		}
 
 		/// <summary>
@@ -103,7 +49,7 @@ namespace JocysCom.ClassLibrary.Security
 		public static List<GroupPrincipal> GetUserGroups(SecurityIdentifier sid)
 		{
 			var groups = new List<GroupPrincipal>();
-			if (sid is null)
+			if (sid == null)
 				return groups;
 			if (!sid.IsAccountSid())
 				return groups;
@@ -131,15 +77,7 @@ namespace JocysCom.ClassLibrary.Security
 						groups.Add(lg);
 				}
 			}
-			return groups.OrderBy(x => x.Name).ToList();
-		}
-
-		public static bool IsLocalUser()
-		{
-			var currentIdentity = WindowsIdentity.GetCurrent();
-			var sid = currentIdentity.User;
-			var isLocal = IsLocalUser(sid) || IsLocalGroup(sid);
-			return isLocal;
+			return groups;
 		}
 
 		/// <summary>
@@ -207,7 +145,7 @@ namespace JocysCom.ClassLibrary.Security
 		/// <returns>True if user has rights, false if user don't have rights or rights not found.</returns>
 		public static bool HasRights(RegistryKey key, RegistryRights rights, WindowsIdentity identity = null, bool? isElevated = null)
 		{
-			if (identity is null)
+			if (identity == null)
 				identity = WindowsIdentity.GetCurrent();
 			var isAdmin = isElevated.HasValue
 						? isElevated.Value
@@ -225,9 +163,9 @@ namespace JocysCom.ClassLibrary.Security
 		/// <returns>True if user has rights, false if user don't have rights or rights not found.</returns>
 		public static bool HasRights(RegistryKey key, RegistryRights rights, SecurityIdentifier sid, bool? isElevated = null)
 		{
-			if (key is null)
+			if (key == null)
 				return false;
-			if (sid is null)
+			if (sid == null)
 				return false;
 			var allowRights = GetRights(key, sid, true, AccessControlType.Allow);
 			var groups = GetUserGroups(sid);
@@ -267,9 +205,9 @@ namespace JocysCom.ClassLibrary.Security
 		public static RegistryRights GetRights(RegistryKey key, SecurityIdentifier sid, bool includeInherited = false, AccessControlType accessType = AccessControlType.Allow)
 		{
 			var rights = default(RegistryRights);
-			if (key is null)
+			if (key == null)
 				return rights;
-			if (sid is null)
+			if (sid == null)
 				return rights;
 			var security = key.GetAccessControl();
 			var rules = security.GetAccessRules(true, true, sid.GetType());
@@ -305,9 +243,9 @@ namespace JocysCom.ClassLibrary.Security
 		)
 		{
 			var key = baseKey.OpenSubKey(registryName, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions | RegistryRights.ReadKey);
-			if (key is null)
+			if (key == null)
 				return false;
-			if (sid is null)
+			if (sid == null)
 				return false;
 			var security = key.GetAccessControl();
 			RegistryAccessRule sidRule = null;
@@ -323,7 +261,7 @@ namespace JocysCom.ClassLibrary.Security
 					break;
 				}
 			}
-			if (sidRule is null)
+			if (sidRule == null)
 			{
 				sidRule = new RegistryAccessRule(
 					sid,
@@ -379,7 +317,7 @@ namespace JocysCom.ClassLibrary.Security
 		/// <returns>True if user has rights, false if user don't have rights or rights not found.</returns>
 		public static bool HasRights(string path, FileSystemRights rights, WindowsIdentity identity = null, bool? isElevated = null)
 		{
-			if (identity is null)
+			if (identity == null)
 				identity = WindowsIdentity.GetCurrent();
 			var isAdmin = isElevated.HasValue
 				? isElevated.Value
@@ -399,7 +337,7 @@ namespace JocysCom.ClassLibrary.Security
 		{
 			if (string.IsNullOrEmpty(path))
 				return false;
-			if (sid is null)
+			if (sid == null)
 				return false;
 			if (!File.Exists(path) && !Directory.Exists(path))
 				return false;
@@ -446,17 +384,15 @@ namespace JocysCom.ClassLibrary.Security
 			var rights = default(FileSystemRights);
 			if (string.IsNullOrEmpty(path))
 				return rights;
-			if (sid is null)
+			if (sid == null)
 				return rights;
 			if (!File.Exists(path) && !Directory.Exists(path))
 				return rights;
 			var attributes = File.GetAttributes(path);
 			var isDirectory = attributes.HasFlag(FileAttributes.Directory);
 			var security = isDirectory
-				? new DirectoryInfo(path).GetAccessControl()
-				: (FileSystemSecurity)new FileInfo(path).GetAccessControl();
-			Console.WriteLine($"Access control information for the directory '{path}':");
-			Console.WriteLine(security);
+				? Directory.GetAccessControl(path)
+				: (FileSystemSecurity)File.GetAccessControl(path);
 			var rules = security.GetAccessRules(true, true, sid.GetType());
 			foreach (FileSystemAccessRule rule in rules)
 			{
@@ -489,15 +425,15 @@ namespace JocysCom.ClassLibrary.Security
 		{
 			if (string.IsNullOrEmpty(path))
 				return false;
-			if (sid is null)
+			if (sid == null)
 				return false;
 			if (!File.Exists(path) && !Directory.Exists(path))
 				return false;
 			var attributes = File.GetAttributes(path);
 			var isDirectory = attributes.HasFlag(FileAttributes.Directory);
 			var security = isDirectory
-				? new DirectoryInfo(path).GetAccessControl()
-				: (FileSystemSecurity)new FileInfo(path).GetAccessControl();
+				? Directory.GetAccessControl(path)
+				: (FileSystemSecurity)File.GetAccessControl(path);
 			FileSystemAccessRule sidRule = null;
 			// Do not include inherited permissions, because.
 			var rules = security.GetAccessRules(true, false, sid.GetType());
@@ -511,7 +447,7 @@ namespace JocysCom.ClassLibrary.Security
 					break;
 				}
 			}
-			if (sidRule is null)
+			if (sidRule == null)
 			{
 				sidRule = new FileSystemAccessRule(
 					sid,
@@ -540,9 +476,9 @@ namespace JocysCom.ClassLibrary.Security
 				security.SetAccessRule(newRule);
 			}
 			if (isDirectory)
-				new DirectoryInfo(path).SetAccessControl((DirectorySecurity)security);
+				Directory.SetAccessControl(path, (DirectorySecurity)security);
 			else
-				new FileInfo(path).SetAccessControl((FileSecurity)security);
+				File.SetAccessControl(path, (FileSecurity)security);
 			return true;
 		}
 

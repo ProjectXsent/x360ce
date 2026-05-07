@@ -4,7 +4,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
 using x360ce.Engine;
-using JocysCom.ClassLibrary.Controls;
+using System.Windows;
+using System.Runtime.CompilerServices;
 
 namespace x360ce.App
 {
@@ -13,13 +14,6 @@ namespace x360ce.App
 	/// </summary>
 	public static partial class Global
 	{
-
-		public static Service.LocalService _LocalService;
-		public static Service.TrayManager _TrayManager;
-		public static MainWindow _MainWindow;
-
-		public static InfoControl HMan
-			=> _MainWindow?.MainPanel?.InfoPanel;
 
 		public static CloudClient CloudClient;
 
@@ -35,7 +29,7 @@ namespace x360ce.App
 			Trace.TraceInformation("{0}", MethodBase.GetCurrentMethod().Name);
 		}
 
-		#region ■ Global Services
+		#region Global Services
 
 		public static Service.RemoteService RemoteServer;
 		static Engine.ForegroundWindowHook WindowHook;
@@ -54,12 +48,12 @@ namespace x360ce.App
 		private static void WindowHook_OnActivate(object sender, EventArgs<Process> e)
 		{
 			var process = e.Data;
-			FindAndSetOpenGame();
+			SelectOpenGame();
 		}
 
 		public static string LastActivePath;
 
-		public static void FindAndSetOpenGame()
+		public static void SelectOpenGame()
 		{
 			// Get selected process.
 			var activeProcess = ForegroundWindowHook.GetActiveProcess();
@@ -68,11 +62,11 @@ namespace x360ce.App
 				.Distinct()
 				.ToArray();
 			// Get list of all configured user games.
-			var userGames = SettingsManager.UserGames.ItemsToArraySynchronized().ToList();
+			var userGames = SettingsManager.UserGames.ItemsToArraySyncronized().ToList();
 			var currentApp = userGames.FirstOrDefault(x => x.IsCurrentApp());
 			if (currentApp != null)
 				userGames.Remove(currentApp);
-			// Select all games which are running (except current app).
+			// Select all games which are running (execept current app).
 			var runningGames = userGames
 				.Where(x => allPaths.Any(a => string.Equals(x.FullPath, a, StringComparison.OrdinalIgnoreCase)))
 				.ToArray();
@@ -93,7 +87,7 @@ namespace x360ce.App
 			if (game == null)
 				// Select current app.
 				game = currentApp;
-			LastActivePath = game?.FullPath;
+			LastActivePath = game.FullPath;
 			SettingsManager.UpdateCurrentGame(game);
 		}
 
@@ -112,9 +106,6 @@ namespace x360ce.App
 			var o = SettingsManager.Options;
 			switch (e.PropertyName)
 			{
-				case nameof(Options.PollingRate):
-					DHelper.Frequency = o.PollingRate;
-					break;
 				case nameof(Options.RemoteEnabled):
 					// If UDP server must be enabled then...
 					if (o.RemoteEnabled)
@@ -130,15 +121,19 @@ namespace x360ce.App
 			}
 		}
 
-		#region ■ DInput Helper
-
-		public static bool AllowDHelperStart;
+		#region Dinput Helper
 
 		public static DInput.DInputHelper DHelper;
 
+		public static void InitDHelperHelper()
+		{
+			// Initialize DInput Helper.
+			DHelper = new DInput.DInputHelper();
+		}
+
 		#endregion
 
-		#region ■ Public events
+		#region Public events
 
 		/// <summary>
 		/// This method called from UpdateTimer on main form.
@@ -153,13 +148,9 @@ namespace x360ce.App
 		/// </summary>
 		public static event EventHandler UpdateControlFromStates;
 
+		
+
 		#endregion
-
-		// Game control monitors this event, when user wants to add new game.
-		public static event EventHandler AddGame;
-
-		public static void OnAddGame(object sender)
-			=> AddGame?.Invoke(sender, EventArgs.Empty);
 
 	}
 }

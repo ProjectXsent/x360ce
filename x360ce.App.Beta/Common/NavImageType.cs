@@ -5,6 +5,5 @@
 		Normal,
 		Record,
 		Active,
-		Over
 	}
 }

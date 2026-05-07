@@ -1,11 +1,10 @@
-﻿using Nefarius.ViGEm.Client;
+﻿using JocysCom.ClassLibrary.Controls;
+using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
 using Nefarius.ViGEm.Client.Targets.Xbox360;
 using SharpDX.XInput;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Windows.Input;
+using System.Windows.Forms;
 using x360ce.Engine;
 using x360ce.Engine.Data;
 
@@ -27,7 +26,7 @@ namespace x360ce.App.DInput
 			if (!allow)
 				return;
 			// If virtual driver is missing then return.
-			if (!ViGEmClient.isVBusExists())
+			if (!ViGEmClient.isVBusExists(true))
 				return;
 			var isVirtual = game != null && ((EmulationType)game.EmulationType).HasFlag(EmulationType.Virtual);
 			// If game does not use virtual emulation then...
@@ -143,7 +142,6 @@ namespace x360ce.App.DInput
 			report.SetButtonState(Xbox360Buttons.Y, n.Buttons.HasFlag(GamepadButtonFlags.Y));
 			report.SetButtonState(Xbox360Buttons.Start, n.Buttons.HasFlag(GamepadButtonFlags.Start));
 			report.SetButtonState(Xbox360Buttons.Back, n.Buttons.HasFlag(GamepadButtonFlags.Back));
-			// report.SetButtonState(Xbox360Buttons.Guide, n.Buttons.HasFlag(GamepadButtonFlags.Guide));
 			report.SetButtonState(Xbox360Buttons.LeftThumb, n.Buttons.HasFlag(GamepadButtonFlags.LeftThumb));
 			report.SetButtonState(Xbox360Buttons.RightThumb, n.Buttons.HasFlag(GamepadButtonFlags.RightThumb));
 			report.SetButtonState(Xbox360Buttons.LeftShoulder, n.Buttons.HasFlag(GamepadButtonFlags.LeftShoulder));
@@ -173,61 +171,32 @@ namespace x360ce.App.DInput
 			{
 				// Update controller.
 				ViGEmClient.Current.Targets[i - 1].SendReport(report);
-				lock (guideLock)
+				ControlsHelper.BeginInvoke(() =>
 				{
-					var isGuidePressed = n.Buttons.HasFlag(GamepadButtonFlags.Guide);
-					if (isGuidePressed && !IsGuideDown)
+					lock (guideLock)
 					{
-						var keys = GetGuideKeys();
-						if (keys.Count() > 0)
-							JocysCom.ClassLibrary.Processes.KeyboardHelper.SendDown(keys);
-						IsGuideDown = true;
+						var isGuidePressed = n.Buttons.HasFlag(GamepadButtonFlags.Guide);
+						if (isGuidePressed && !IsGuideDown)
+						{
+							JocysCom.ClassLibrary.Processes.KeyboardHelper.SendDown(Keys.LWin, Keys.G);
+							IsGuideDown = true;
+						}
+						if (!isGuidePressed && IsGuideDown)
+						{
+							JocysCom.ClassLibrary.Processes.KeyboardHelper.SendUp(Keys.LWin, Keys.G);
+							IsGuideDown = false;
+						}
 					}
-					if (!isGuidePressed && IsGuideDown)
-					{
-						var keys = GetGuideKeys();
-						if (keys.Count() > 0)
-							JocysCom.ClassLibrary.Processes.KeyboardHelper.SendUp(keys);
-						IsGuideDown = false;
-					}
-				}
+				});
 				// Update old state.
 				oldGamepadStates[i - 1] = n;
 			}
 		}
 
-		private static Key[] GetGuideKeys()
-		{
-			var list = new List<Key>();
-			var keys = SettingsManager.Options.GuideButtonAction;
-			var matches = rxKeys.Matches(keys);
-			foreach (Match m in matches)
-			{
-				var s = m.Groups["key"].Value;
-				byte keyCode;
-				// Try parse as byte/number first.
-				if (byte.TryParse(s, out keyCode))
-				{
-					list.Add((Key)keyCode);
-					continue;
-				}
-				// Try parse as "Keys" enum (ignore case).
-				Key keyValue;
-				if (System.Enum.TryParse(s, true, out keyValue))
-				{
-					list.Add(keyValue);
-					continue;
-				}
-			}
-			return list.ToArray();
-		}
-
-		private static Regex rxKeys = new Regex("{(?<key>[0-9a-zA-Z]+)}");
-
 		public static VirtualError CheckInstallVirtualDriver()
 		{
 			// If driver is installed already then return.
-			if (ViGEmClient.isVBusExists())
+			if (ViGEmClient.isVBusExists(false))
 				return VirtualError.None;
 			Program.RunElevated(AdminCommand.InstallViGEmBus);
 			return VirtualError.None;
@@ -236,7 +205,7 @@ namespace x360ce.App.DInput
 		public static VirtualError CheckUnInstallVirtualDriver()
 		{
 			// If driver is installed already then return.
-			if (!ViGEmClient.isVBusExists())
+			if (!ViGEmClient.isVBusExists(false))
 				return VirtualError.None;
 			Program.RunElevated(AdminCommand.UninstallViGEmBus);
 			return VirtualError.None;
@@ -246,7 +215,7 @@ namespace x360ce.App.DInput
 		{
 			if (userIndex < 1 || userIndex > 4)
 				return VirtualError.Index;
-			if (!ViGEmClient.isVBusExists())
+			if (!ViGEmClient.isVBusExists(true))
 				return VirtualError.Missing;
 			if (!ViGEmClient.Current.isControllerExists(userIndex))
 				return VirtualError.Other;
@@ -263,7 +232,7 @@ namespace x360ce.App.DInput
 			bool success;
 			if (userIndex < 1 || userIndex > 4)
 				return VirtualError.Index;
-			if (!ViGEmClient.isVBusExists())
+			if (!ViGEmClient.isVBusExists(false))
 				return VirtualError.Missing;
 			if (!ViGEmClient.Current.isControllerExists(userIndex))
 				return VirtualError.None;

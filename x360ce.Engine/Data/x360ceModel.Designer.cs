@@ -392,7 +392,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="Layout")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="Layout")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class Layout : EntityObject
@@ -1254,7 +1254,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="PadSetting")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="PadSetting")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class PadSetting : EntityObject
@@ -3312,7 +3312,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="Product")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="Product")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class Product : EntityObject
@@ -3472,7 +3472,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="Program")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="Program")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class Program : EntityObject
@@ -4074,7 +4074,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="Summary")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="Summary")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class Summary : EntityObject
@@ -4364,7 +4364,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserComputer")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserComputer")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserComputer : EntityObject
@@ -4602,7 +4602,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserDevice")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserDevice")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserDevice : EntityObject
@@ -5906,7 +5906,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserGame")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserGame")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserGame : EntityObject
@@ -6612,7 +6612,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserInstance")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserInstance")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserInstance : EntityObject
@@ -6850,7 +6850,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserMacro")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserMacro")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserMacro : EntityObject
@@ -7322,7 +7322,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserProfile")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserProfile")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserProfile : EntityObject
@@ -7534,7 +7534,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="UserSetting")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="UserSetting")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class UserSetting : EntityObject
@@ -8058,7 +8058,7 @@ namespace x360ce.Engine.Data
     /// <summary>
     /// No Metadata Documentation available.
     /// </summary>
-    [EdmEntityTypeAttribute(NamespaceName="x360ce.Engine.Data", Name="Vendor")]
+    [EdmEntityTypeAttribute(NamespaceName="x360ceModel", Name="Vendor")]
     [Serializable()]
     [DataContractAttribute(IsReference=true)]
     public partial class Vendor : EntityObject

@@ -9,7 +9,7 @@ namespace x360ce.App.DInput
 	{
 
 		public State[] CombinedXiStates;
-		public bool[] CombinedXiConnected;
+		public bool[] CombinedXiConencted;
 		public int PacketNumber;
 
 		void CombineXiStates()
@@ -18,7 +18,7 @@ namespace x360ce.App.DInput
 			{
 				// Get all mapped devices.
 				// Convert to array to make sure that states are not modified during selection and exception won't be thrown.
-				var states = SettingsManager.UserSettings.ItemsToArraySynchronized()
+				var states = SettingsManager.UserSettings.ItemsToArraySyncronized()
 				   .Where(x => x.MapTo == m + 1)
 				   .Select(x => x.XiState)
 				   .ToArray();
@@ -48,7 +48,7 @@ namespace x360ce.App.DInput
 				combinedState.PacketNumber = PacketNumber;
 				combinedState.Gamepad = gp;
 				CombinedXiStates[m] = combinedState;
-				CombinedXiConnected[m] = states.Length > 0;
+				CombinedXiConencted[m] = states.Length > 0;
 			}
 		}
 

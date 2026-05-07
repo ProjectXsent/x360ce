@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Management;
-using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Environment;
 
 namespace JocysCom.ClassLibrary.Controls.IssuesControl
 {
@@ -56,39 +56,41 @@ namespace JocysCom.ClassLibrary.Controls.IssuesControl
 			{
 				using (var key = arg.Key.OpenSubKey(arg.Path))
 				{
-					if (key is null)
+					if (key == null)
 						continue;
 					foreach (string subkey_name in key.GetSubKeyNames())
 					{
 						using (var subKey = key.OpenSubKey(subkey_name))
 						{
-							if (subKey is null)
+							if (subKey == null)
 								continue;
 							var displayName = (string)subKey.GetValue(arg.ProductKeyName, "");
 							// If product found then...
 							if (nameRx.IsMatch(displayName))
 							{
-								if (!uninstall)
-									return true;
-								string uninstallCommand = null;
-								if (!string.IsNullOrEmpty(arg.UninstallKeyName1))
-									uninstallCommand = (string)subKey.GetValue(arg.UninstallKeyName1, "");
-								// If uninstall command was not found then try other key.
-								if (!string.IsNullOrEmpty(arg.UninstallKeyName2) && string.IsNullOrEmpty(uninstallCommand))
-									uninstallCommand = (string)subKey.GetValue(arg.UninstallKeyName2, "");
-								// If uninstall command was found then...
-								if (!string.IsNullOrEmpty(uninstallCommand))
+								if (uninstall)
 								{
-									// Get first space.
-									var splitIndex = uninstallCommand.StartsWith("\"")
-										// Split from second quote.
-										? uninstallCommand.IndexOf('\"', 1)
-										// Split from first space.
-										: uninstallCommand.IndexOf(' ');
-									var upath = uninstallCommand.Substring(0, splitIndex);
-									var uargs = uninstallCommand.Substring(splitIndex);
-									ControlsHelper.OpenPath(upath, uargs);
+									string uninstallCommand = null;
+									if (!string.IsNullOrEmpty(arg.UninstallKeyName1))
+										uninstallCommand = (string)subKey.GetValue(arg.UninstallKeyName1, "");
+									// If uninstall command was not found then try other key.
+									if (!string.IsNullOrEmpty(arg.UninstallKeyName2) && string.IsNullOrEmpty(uninstallCommand))
+										uninstallCommand = (string)subKey.GetValue(arg.UninstallKeyName2, "");
+									// If uninstall command was found then...
+									if (!string.IsNullOrEmpty(uninstallCommand))
+									{
+										// Get first space.
+										var splitIndex = uninstallCommand.StartsWith("\"")
+											// Split from second quote.
+											? uninstallCommand.IndexOf('\"', 1)
+											// Split from first space.
+											: uninstallCommand.IndexOf(' ');
+										var upath = uninstallCommand.Substring(0, splitIndex);
+										var uargs = uninstallCommand.Substring(splitIndex);
+										ControlsHelper.OpenPath(upath, uargs);
+									}
 								}
+								return true;
 							}
 						}
 					}
@@ -103,14 +105,16 @@ namespace JocysCom.ClassLibrary.Controls.IssuesControl
 		/// </summary>
 		public static Version GetRealOSVersion()
 		{
-			if (OSVersion is null)
-				OSVersion = GetFileVersion(Environment.SpecialFolder.System, "kernel32.dll");
+			if (OSVersion == null)
+			{
+				OSVersion = GetFileVersion(SpecialFolder.System, "kernel32.dll");
+			}
 			return OSVersion;
 		}
 
-		public static Version GetFileVersion(Environment.SpecialFolder folder, string name)
+		public static Version GetFileVersion(SpecialFolder folder, string name)
 		{
-			if (OSVersion is null)
+			if (OSVersion == null)
 			{
 				var system = Environment.GetFolderPath(folder);
 				var file = Path.Combine(system, name);
@@ -242,8 +246,7 @@ namespace JocysCom.ClassLibrary.Controls.IssuesControl
 		{
 			try
 			{
-				// Run DownloadFile synchronously and without locking.
-				var file = Task.Run(() => DownloadFile(uri, localPath)).GetAwaiter().GetResult();
+				var file = DownloadFile(uri, localPath);
 				if (runElevated)
 				{
 					var proc = new ProcessStartInfo();
@@ -262,10 +265,14 @@ namespace JocysCom.ClassLibrary.Controls.IssuesControl
 			}
 			catch (Exception ex)
 			{
+				var form = new MessageBoxForm();
+				form.StartPosition = FormStartPosition.CenterParent;
+				ControlsHelper.CheckTopMost(form);
 				var text = string.Format("Unable to download {0} file:\r\n\r\n{1}\r\n\r\nOpen source web page?",
 					uri.AbsoluteUri, ex.Message);
-				var result = System.Windows.MessageBox.Show(text, "Download Error", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
-				if (result == System.Windows.MessageBoxResult.Yes)
+				var result = form.ShowForm(text, "Download Error", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+				form.Dispose();
+				if (result == DialogResult.Yes)
 				{
 					ControlsHelper.OpenUrl("https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads");
 				}
@@ -273,17 +280,17 @@ namespace JocysCom.ClassLibrary.Controls.IssuesControl
 			return false;
 		}
 
-		public static async Task<FileInfo> DownloadFile(Uri uri, string localPath)
+		public static FileInfo DownloadFile(Uri uri, string localPath)
 		{
+			var fileName = uri.Segments.Last();
+			var webClient = new System.Net.WebClient();
 			var localFile = new FileInfo(localPath);
 			if (localFile.Exists)
 				localFile.Delete();
-			using (var client = new HttpClient())
-			using (var s = await client.GetStreamAsync(uri))
-			using (var fs = new FileStream(localFile.FullName, FileMode.CreateNew))
-				await s.CopyToAsync(fs);
 			//AddLog("Downloading File: {0}", MoreInfo.AbsoluteUri);
+			webClient.DownloadFile(uri, localFile.FullName);
 			localFile.Refresh();
+			webClient.Dispose();
 			// AddLog("Done");
 			return localFile;
 		}

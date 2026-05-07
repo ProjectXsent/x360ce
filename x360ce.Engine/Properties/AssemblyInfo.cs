@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("TocaEdit X360 Controller Emulator Engine")]
-[assembly: AssemblyDescription("X360CE emulator core engine")]
+[assembly: AssemblyDescription("Shader Components for Application and Webservice")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("TocaEdit")]
 [assembly: AssemblyProduct("X360 Controller Emulator Engine")]
-[assembly: AssemblyCopyright("Copyright © Jocys.com 2021")]
+[assembly: AssemblyCopyright("Copyright © TocaEdit 2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

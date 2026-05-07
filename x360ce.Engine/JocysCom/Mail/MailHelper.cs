@@ -26,7 +26,7 @@ namespace JocysCom.ClassLibrary.Mail
 		public virtual MailAddress GetMailAddress(Guid userId)
 		{
 			var user = System.Web.Security.Membership.GetUser(userId);
-			if (user is null)
+			if (user == null)
 				throw new Exception("User with Id '" + userId + "' doesn't exist!");
 			return new MailAddress(user.Email, user.UserName);
 		}
@@ -39,7 +39,7 @@ namespace JocysCom.ClassLibrary.Mail
 		public virtual MailAddress GetMailAddress(string username)
 		{
 			var user = System.Web.Security.Membership.GetUser(username);
-			if (user is null)
+			if (user == null)
 				throw new Exception("User '" + username + "' doesn't exist!");
 			return new MailAddress(user.Email, user.UserName);
 		}
@@ -105,7 +105,7 @@ namespace JocysCom.ClassLibrary.Mail
 			return message;
 		}
 
-		#region HTML Validation
+#region HTML Validation
 
 		private static readonly Regex _htmlTag = new Regex("</?\\w+((\\s+\\w+(\\s*=\\s*(?:\".*?\"|'.*?'|[^'\">\\s]+))?)+\\s*|\\s*)/?>");
 
@@ -114,9 +114,9 @@ namespace JocysCom.ClassLibrary.Mail
 			return _htmlTag.IsMatch(s);
 		}
 
-		#endregion
+#endregion
 
-		#region Apply Recipients and Attachments
+#region Apply Recipients and Attachments
 
 		public static void ApplyRecipients(MailMessage mail, string addFrom, string addTo, string addCc = null, string addBcc = null)
 		{
@@ -159,7 +159,7 @@ namespace JocysCom.ClassLibrary.Mail
 		public static void ApplyAttachments(MailMessage message, params string[] files)
 		{
 			var list = new List<Attachment>();
-			if (files is null)
+			if (files == null)
 				return;
 			for (var i = 0; i < files.Count(); i++)
 			{
@@ -175,15 +175,15 @@ namespace JocysCom.ClassLibrary.Mail
 
 		public static void ApplyAttachments(MailMessage message, params Attachment[] files)
 		{
-			if (files is null)
+			if (files == null)
 				return;
 			for (var i = 0; i < files.Count(); i++)
 				message.Attachments.Add(files[i]);
 		}
 
-		#endregion
+#endregion
 
-		#region Convert Text To HTML
+#region Convert Text To HTML
 
 		/// <summary>
 		/// Create alternative view from HTML.
@@ -220,26 +220,29 @@ namespace JocysCom.ClassLibrary.Mail
 			result = Regex.Replace(result, @"< */ *head *>", "</head>", RegexOptions.IgnoreCase);
 			// Delete everything between the <head> and </head> tags
 			result = Regex.Replace(result, @"<head>.*</head>", string.Empty, RegexOptions.IgnoreCase);
-			// Add tabs
-			result = ReplaceTags(result, "\t", "li", "tr");
-			// Replace blocks.
-			var block = "address|article|aside|blockquote|canvas|dd|div|dl|dt|" +
-			  "fieldset|figcaption|figure|footer|form|h\\d|header|hr|li|main|nav|" +
-			  "noscript|output|p|pre|section|table|tfoot|video";
-			var patNestedBlock = $"(\\s*?</?({block})[^>]*?>)+\\s*";
-			result = Regex.Replace(result, patNestedBlock, "\r\n", RegexOptions.IgnoreCase);
-			// Replace blocks with double return.
-			var blockDR = "ul|ol";
-			var patNestedBlockDR = $"(\\s*?</?({blockDR})[^>]*?>)+\\s*";
-			result = Regex.Replace(result, patNestedBlockDR, "\r\n\r\n", RegexOptions.IgnoreCase);
-			// Replace to newline.
-			result = Regex.Replace(result, @"<(br)[^>]*>", "\r\n", RegexOptions.IgnoreCase);
-			// Remove styles and scripts.
-			result = Regex.Replace(result, @"<(script|style)[^>]*?>.*?</\1>", "", RegexOptions.Singleline);
-			// Remove all remaining html tags
+			// Remove all attributes and whitespace from all <script> tags
+			result = Regex.Replace(result, @"< *script[^>]*>", "<script>", RegexOptions.IgnoreCase);
+			// Remove all whitespace from all </script> tags
+			result = Regex.Replace(result, @"< */ *script *>", "</script>", RegexOptions.IgnoreCase);
+			// Delete everything between all <script> and </script> tags
+			result = Regex.Replace(result, @"<script>.*</script>", string.Empty, RegexOptions.IgnoreCase);
+			// Remove all attributes and whitespace from all <style> tags
+			result = Regex.Replace(result, @"< *style[^>]*>", "<style>", RegexOptions.IgnoreCase);
+			// Remove all whitespace from all </style> tags
+			result = Regex.Replace(result, @"< */ *style *>", "</style>", RegexOptions.IgnoreCase);
+			// Delete everything between all <style> and </style> tags
+			result = Regex.Replace(result, @"<style>.*</style>", string.Empty, RegexOptions.IgnoreCase);
+			// Insert tabs in place of <td> tags
+			result = Regex.Replace(result, @"< *td[^>]*>", "\t", RegexOptions.IgnoreCase);
+			// Insert single line breaks in place of <br> and <li> tags
+			result = Regex.Replace(result, @"< *br[^>]*>", "\r\n", RegexOptions.IgnoreCase);
+			result = Regex.Replace(result, @"< *li[^>]*>", "\r\n", RegexOptions.IgnoreCase);
+			// Insert double line breaks in place of <p>, <div> and <tr> tags
+			result = Regex.Replace(result, @"< *div[^>]*>", "\r\n" + "\r\n", RegexOptions.IgnoreCase);
+			result = Regex.Replace(result, @"< *tr[^>]*>", "\r\n" + "\r\n", RegexOptions.IgnoreCase);
+			result = Regex.Replace(result, @"< *p[^>]*>", "\r\n" + "\r\n", RegexOptions.IgnoreCase);
+			// Remove all reminaing html tags
 			result = Regex.Replace(result, @"<[^>]*>", string.Empty, RegexOptions.IgnoreCase);
-			// Replace HTML entities.
-			result = System.Net.WebUtility.HtmlDecode(result);
 			// Replace repeating spaces with a single space
 			result = Regex.Replace(result, " +", " ");
 			// Remove any trailing spaces and tabs from the end of each line
@@ -250,16 +253,9 @@ namespace JocysCom.ClassLibrary.Mail
 			result = Regex.Replace(result, @"[\s]+$", string.Empty);
 			// Remove extra line breaks if there are more than two in a row
 			result = Regex.Replace(result, @"\r\n\r\n(\r\n)+", "\r\n" + "\r\n");
+			//System.IO.File.WriteAllText(@"D:\temp\mail.txt", result);
 			return result;
 		}
-
-		private static string ReplaceTags(string input, string replacement, params string[] tags)
-		{
-			foreach (var tag in tags)
-				input = Regex.Replace(input, "< *" + tag + "[^>]*>", "<" + tag + ">" + replacement, RegexOptions.IgnoreCase);
-			return input;
-		}
-
 
 		private static string GetPattern(string tag, params string[] attributes)
 		{
@@ -286,9 +282,9 @@ namespace JocysCom.ClassLibrary.Mail
 			return result;
 		}
 
-		#endregion
+#endregion
 
-		#region Email Validation
+#region Email Validation
 
 		public static EmailResult EmailValid(string email)
 		{
@@ -320,7 +316,7 @@ namespace JocysCom.ClassLibrary.Mail
 			set { _emailRegex = value; }
 			get
 			{
-				if (_emailRegex is null)
+				if (_emailRegex == null)
 					_emailRegex = new Regex(emailRegexRFC5322, RegexOptions.IgnoreCase);
 				return _emailRegex;
 			}
@@ -376,7 +372,7 @@ namespace JocysCom.ClassLibrary.Mail
 			return result;
 		}
 
-		#endregion
+#endregion
 
 	}
 }

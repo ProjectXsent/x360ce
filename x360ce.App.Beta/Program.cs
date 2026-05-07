@@ -4,8 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows;
-using System.Windows.Interop;
+using System.Windows.Forms;
 
 namespace x360ce.App
 {
@@ -24,39 +23,42 @@ namespace x360ce.App
 			}
 		}
 
+		internal const int STATE_VISIBLE = 0x00000002;
+		internal const int STATE_ENABLED = 0x00000004;
+
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
 		[STAThread]
 		static void Main(string[] args)
 		{
-			//TestMemoryLeak(typeof(JocysCom.ClassLibrary.Controls.IssuesControl.IssuesControl));
-			//return;
-			CaptureExceptions();
 			// Fix: System.TimeoutException: The operation has timed out. at System.Windows.Threading.Dispatcher.InvokeImpl
 			AppContext.SetSwitch("Switch.MS.Internal.DoNotInvokeInWeakEventTableShutdownListener", true);
 			// First: Set working folder to the path of executable.
-			var fi = new FileInfo(System.Windows.Forms.Application.ExecutablePath);
+			var fi = new FileInfo(Application.ExecutablePath);
 			Directory.SetCurrentDirectory(fi.Directory.FullName);
 			// Prevent brave users from running this application from Windows folder.
 			var winFolder = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 			if (fi.FullName.StartsWith(winFolder, StringComparison.OrdinalIgnoreCase))
 			{
-				MessageBox.Show("Running from Windows folder is not allowed!\r\nPlease run this program from another folder.",
-					"Windows Folder", MessageBoxButton.OK, MessageBoxImage.Information);
+				MessageBox.Show("Running from Windows folder is not allowed!\r\nPlease run this program from another folder.", "Windows Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				return;
 			}
 			// IMPORTANT: Make sure this class don't have any static references to x360ce.Engine library or
 			// program tries to load x360ce.Engine.dll before AssemblyResolve event is available and fails.
 			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
+			// In debug mode don't try to wrap app into try catch.
+			if (IsDebug)
+			{
+				StartApp(args);
+				return;
+			}
 			try
 			{
 				StartApp(args);
 			}
 			catch (Exception ex)
 			{
-				if (IsDebug)
-					throw;
 				var message = ExceptionToText(ex);
 				if (message.Contains("Could not load file or assembly 'Microsoft.DirectX"))
 				{
@@ -64,32 +66,13 @@ namespace x360ce.App
 					message += "You can download Microsoft DirectX from:\r\n";
 					message += "http://www.microsoft.com/en-us/download/details.aspx?id=35";
 				}
-				var result = MessageBox.Show(message, "Exception!", MessageBoxButton.OKCancel, MessageBoxImage.Error, MessageBoxResult.OK);
-				if (result == MessageBoxResult.Cancel)
-					app.Shutdown();
+				var result = MessageBox.Show(message, "Exception!", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+				if (result == DialogResult.Cancel)
+					Application.Exit();
 			}
 		}
 
-		public static void CaptureExceptions()
-		{
-			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-			AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
-			System.Threading.Tasks.TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-		}
-
-		private static void TaskScheduler_UnobservedTaskException(object sender, System.Threading.Tasks.UnobservedTaskExceptionEventArgs e)
-		{ // <- Put breakpoint here to capture exceptions during debug.
-		}
-
-		private static void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
-		{ // <- Put breakpoint here to capture exceptions during debug.
-		}
-
-		private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-		{ // <- Put breakpoint here to capture exceptions during debug.
-		}
-
-		public const string arg_WindowState = nameof(WindowState);
+		public const string arg_WindowState = "WindowState";
 
 		internal class NativeMethods
 		{
@@ -103,135 +86,70 @@ namespace x360ce.App
 			{
 				// Failed to enable useLegacyV2RuntimeActivationPolicy at runtime.
 			}
-			// Requires System.Configuration.Install reference.
+			if (Environment.OSVersion.Version.Major >= 6)
+				NativeMethods.SetProcessDPIAware();
+			Application.EnableVisualStyles();
+			Application.SetCompatibleTextRenderingDefault(false);
+			// Requires System.Configuration.Installl reference.
 			var ic = new System.Configuration.Install.InstallContext(null, args);
 			// ------------------------------------------------
 			// Administrator commands.
 			// ------------------------------------------------
-			var executed = ProcessAdminCommands(args);
+			var executed = ProcessAdminCommands(false, args);
 			// If valid command was executed then...
 			if (executed)
 				return;
 			// ------------------------------------------------
-			// If must open all setting folders then...
 			if (ic.Parameters.ContainsKey("Settings"))
 			{
-				OpenSettingsFolder(ApplicationDataPath);
-				OpenSettingsFolder(CommonApplicationDataPath);
-				OpenSettingsFolder(LocalApplicationDataPath);
+				OpenSettingsFolder(Application.UserAppDataPath);
+				OpenSettingsFolder(Application.CommonAppDataPath);
+				OpenSettingsFolder(Application.LocalUserAppDataPath);
 				return;
 			}
-			// If default application settings failed to load then... 
-			if (!CheckDefaultSettings())
+			if (!CheckSettings())
 				return;
-			// Load all settings.
-			SettingsManager.Load();
-			var o = SettingsManager.Options;
-			// DPI aware property must be set before application window is created.
-			if (Environment.OSVersion.Version.Major >= 6 && o.IsProcessDPIAware)
-				NativeMethods.SetProcessDPIAware();
 			Global.InitializeServices();
 			Global.InitializeCloudClient();
-			// Initialize DInput Helper.
-			Global.DHelper = new DInput.DInputHelper();
+			MainForm.Current = new MainForm();
 			if (ic.Parameters.ContainsKey("Exit"))
 			{
-				// Close all x360ce apps.
-				StartHelper.BroadcastMessage(StartHelper.wParam_Close);
+				MainForm.Current.BroadcastMessage(MainForm.wParam_Close);
 				return;
 			}
-			// Allow to run if multiple copies allowed or allow to restore window.
-			var allowToRun = !o.AllowOnlyOneCopy || !StartHelper.BroadcastMessage(StartHelper.wParam_Restore);
+			var doNotAllowToRun = SettingsManager.Options.AllowOnlyOneCopy && MainForm.Current.BroadcastMessage(MainForm.wParam_Restore);
 			// If one copy is already opened then...
-			if (allowToRun)
+			if (doNotAllowToRun)
 			{
-				InitializeServices();
-				InitializeTrayIcon();
-				app = new App();
-				//app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
-				app.Startup += App_Startup;
-				app.InitializeComponent();
-				// Create the main application window which will take minimum amount of memory.
-				// Main application window is impossible to dispose until the application closes.
-				// Important: .Owner property must be set to Application.Current.MainWindow for sub-window to dispose.
-				var appWindow = new Window();
-				appWindow.Title = "x360ceAppWindow";
-				// Make sure it contains handle.
-				var awHelper = new WindowInteropHelper(appWindow);
-				awHelper.EnsureHandle();
-				Application.Current.MainWindow = appWindow;
-				// Now we can start the app.
-				app.Run();
+				// Dispose properly so that the tray icon will be removed.
+				MainForm.Current.Dispose();
+			}
+			else
+			{
+				//MainForm.TrayNotifyIcon.Visible = true;
+				if (ic.Parameters.ContainsKey(arg_WindowState))
+				{
+					switch (ic.Parameters[arg_WindowState])
+					{
+						case "Maximized":
+							MainForm.Current.RestoreFromTray();
+							MainForm.Current.WindowState = FormWindowState.Maximized;
+							break;
+						case "Minimized":
+							MainForm.Current.MinimizeToTray(false, SettingsManager.Options.MinimizeToTray);
+							break;
+					}
+				}
+				Application.Run(MainForm.Current);
 			}
 			Global.DisposeCloudClient();
 			Global.DisposeServices();
 		}
 
-		// Application starts first time.
-		private static void App_Startup(object sender, StartupEventArgs e)
-		{
-			var o = SettingsManager.Options;
-			var args = System.Environment.GetCommandLineArgs();
-			var ic = new System.Configuration.Install.InstallContext(null, args);
-			// If windows state parameter was passed then...
-			if (ic.Parameters.ContainsKey(arg_WindowState))
-			{
-				switch (ic.Parameters[arg_WindowState])
-				{
-					case nameof(WindowState.Maximized):
-						Global._TrayManager.RestoreFromTray(false, true);
-						break;
-					case nameof(WindowState.Minimized):
-						Global._TrayManager.MinimizeToTray(false, o.MinimizeToTray);
-						break;
-				}
-			}
-			else
-			{
-				Global._TrayManager.RestoreFromTray(false, false);
-			}
-		}
-
-		#region Service, TrayIcon and UI
-
-		static void InitializeServices()
-		{
-			// Initialize non-UI service first.
-			Global._LocalService = new Service.LocalService();
-			Global._LocalService.Start();
-		}
-
-		static void InitializeTrayIcon()
-		{
-			// Initialize Tray Icon which will manage main window.
-			Global._TrayManager = new Service.TrayManager();
-			Global._TrayManager.OnExitClick += _TrayManager_OnExitClick;
-			Global._TrayManager.OnWindowSizeChanged += _TrayManager_OnWindowSizeChanged;
-			Global._TrayManager.InitMinimizeAndTopMost();
-		}
-
-		static void _TrayManager_OnWindowSizeChanged(object sender, System.EventArgs e)
-		{
-			if (app == null || Global._MainWindow == null)
-				return;
-			// Form GUI update is very heavy on CPU.
-			// Enable form GUI update only if form is not minimized.
-			var enableUpdates = app.MainWindow.WindowState != WindowState.Minimized && !Program.IsClosing;
-			Global._MainWindow.EnableFormUpdates(enableUpdates);
-		}
-
-		static void _TrayManager_OnExitClick(object sender, System.EventArgs e)
-		{
-			// Remove tray icon first.
-			Global._TrayManager.Dispose();
-			app.Shutdown();
-		}
-
-		#endregion
-
-		static App app;
 		public static bool IsClosing;
+
 		public static object DeviceLock = new object();
+
 		public static int TimerCount = 0;
 		public static int ReloadCount = 0;
 		public static int ErrorCount = 0;
@@ -241,9 +159,9 @@ namespace x360ce.App
 			if (IsClosing)
 				return;
 			ErrorCount++;
-			Global._MainWindow.UpdateTimer.Stop();
-			Global._MainWindow.UpdateStatus("- " + e.Exception.Message);
-			Global._MainWindow.UpdateTimer.Start();
+			MainForm.Current.UpdateTimer.Stop();
+			MainForm.Current.UpdateStatus("- " + e.Exception.Message);
+			MainForm.Current.UpdateTimer.Start();
 		}
 
 		static void OpenSettingsFolder(string path)
@@ -257,7 +175,7 @@ namespace x360ce.App
 			Process.Start(psi);
 		}
 
-		static bool CheckDefaultSettings()
+		static bool CheckSettings()
 		{
 			try
 			{
@@ -265,26 +183,26 @@ namespace x360ce.App
 			}
 			catch (ConfigurationErrorsException ex)
 			{
-				// Requires System.Configuration assembly.
+				// Requires System.Configuration
 				string filename = ((ConfigurationErrorsException)ex.InnerException).Filename;
-				var title = "Corrupt user settings of " + Product;
+				var title = "Corrupt user settings of " + Application.ProductName;
 				var text =
 					"Program has detected that your user settings file has become corrupted. " +
 					"This may be due to a crash or improper exiting of the program. " +
 					"Program must reset your user settings in order to continue.\r\n" +
 					"Click [Yes] to reset your user settings and continue.\r\n" +
 					"Click [No] if you wish to exit and attempt manual repair.";
-				var result = MessageBox.Show(text, title, MessageBoxButton.YesNo, MessageBoxImage.Error);
-				if (result == MessageBoxResult.Yes)
+				var result = MessageBox.Show(text, title, MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+				if (result == DialogResult.Yes)
 				{
 					File.Delete(filename);
 					Properties.Settings.Default.Reload();
 				}
 				else
 				{
-					OpenSettingsFolder(ApplicationDataPath);
-					OpenSettingsFolder(CommonApplicationDataPath);
-					OpenSettingsFolder(LocalApplicationDataPath);
+					OpenSettingsFolder(Application.UserAppDataPath);
+					OpenSettingsFolder(Application.CommonAppDataPath);
+					OpenSettingsFolder(Application.LocalUserAppDataPath);
 					return false;
 				}
 			}
@@ -326,8 +244,6 @@ namespace x360ce.App
 			if (path == null)
 				return null;
 			var assembly = Assembly.GetEntryAssembly();
-			if (assembly == null)
-				return null;
 			var sr = assembly.GetManifestResourceStream(path);
 			return sr;
 		}
@@ -338,8 +254,6 @@ namespace x360ce.App
 		public static string GetResourcePath(string name)
 		{
 			var assembly = Assembly.GetEntryAssembly();
-			if (assembly == null)
-				return null;
 			var names = assembly.GetManifestResourceNames()
 				.Where(x => x.EndsWith(name));
 			var a = Environment.Is64BitProcess ? ".x64." : ".x86.";
@@ -351,7 +265,7 @@ namespace x360ce.App
 			return names.FirstOrDefault();
 		}
 
-		#region ■ ExceptionToText
+		#region ExceptionToText
 
 		// Exception to string needed here so that links to other references won't be an issue.
 
@@ -395,33 +309,6 @@ namespace x360ce.App
 		}
 
 		#endregion
-
-		#region GetInfo
-
-		private static string ApplicationDataPath
-			=> Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-		private static string CommonApplicationDataPath
-			=> Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-		private static string LocalApplicationDataPath
-			=> Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-		//private static string Company { get { return GetAttribute<AssemblyCompanyAttribute>(a => a.Company); } }
-		private static string Product { get { return GetAttribute<AssemblyProductAttribute>(a => a.Product); } }
-
-		// Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-
-		private static string GetAttribute<T>(Func<T, string> value) where T : Attribute
-		{
-			var asm = Assembly.GetExecutingAssembly();
-			T attribute = (T)Attribute.GetCustomAttribute(asm, typeof(T));
-			return attribute == null
-				? ""
-				: value.Invoke(attribute);
-		}
-
-		#endregion
-
-
 
 	}
 }

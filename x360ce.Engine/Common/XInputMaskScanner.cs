@@ -1,5 +1,4 @@
-﻿using JocysCom.ClassLibrary;
-using JocysCom.ClassLibrary.IO;
+﻿using JocysCom.ClassLibrary.IO;
 using JocysCom.ClassLibrary.Runtime;
 using System;
 using System.Collections.Generic;
@@ -118,7 +117,7 @@ namespace x360ce.Engine
 					Updated = updated
 				};
 				ReportProgress(e);
-                // If specific file name was not specified and program not found then... 
+                // If specific file name was not specifield and program not found then... 
                 if (string.IsNullOrEmpty(fileName) && program == null)
                 {
                     skipped++;
@@ -157,16 +156,16 @@ namespace x360ce.Engine
 			ReportProgress(e);
         }
 
-        private void ff_FileFound(object sender, ProgressEventArgs e)
+        private void ff_FileFound(object sender, FileFinderEventArgs e)
         {
 			var e2 = new XInputMaskScannerEventArgs
 			{
-				DirectoryIndex = e.TopIndex,
-				Directories = (List<DirectoryInfo>)e.TopData,
-				FileIndex = e.SubIndex,
-				Files = (List<FileInfo>)e.SubData,
+				DirectoryIndex = e.DirectoryIndex,
+				Directories = e.Directories,
+				FileIndex = e.FileIndex,
+				Files = e.Files,
 				State = XInputMaskScannerState.DirectoryUpdate,
-				Message = string.Format("Step 1: {0} programs found. Searching path {1} of {2}. Please wait...", e.SubCount, e.TopIndex + 1, e.TopCount)
+				Message = string.Format("Step 1: {0} programs found. Searching path {1} of {2}. Please wait...", e.Files.Count, e.DirectoryIndex + 1, e.Directories.Count)
 			};
 			ReportProgress(e2);
         }

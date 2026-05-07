@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpDX.DirectInput;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -31,26 +32,10 @@ namespace x360ce.App
 		public static UserGame CurrentGame;
 		public static object CurrentGameLock = new object();
 
+		static object OptionsLock = new object();
+
 		public static event PropertyChangedEventHandler CurrentGame_PropertyChanged;
 
-		/// <summary>
-		/// Apply all settings to XML.
-		/// </summary>
-		public bool ApplyAllSettingsToXML()
-		{
-			var padControls = Global._MainWindow.MainPanel.MainBodyPanel.PadControls;
-			for (int i = 0; i < padControls.Length; i++)
-			{
-				// Get pad control with settings.
-				var padControl = Global._MainWindow.MainPanel.MainBodyPanel.PadControls[i];
-				var setting = padControl.CurrentUserSetting;
-				// Skip if not selected.
-				if (setting == null)
-					continue;
-				SavePadSetting(setting, padControl.CurrentPadSetting);
-			}
-			return true;
-		}
 		public static void UpdateCurrentGame(UserGame game)
 		{
 			lock (CurrentGameLock)
@@ -64,10 +49,10 @@ namespace x360ce.App
 				// Attach event to new game.
 				if (game != null)
 					game.PropertyChanged += CurrentGame_PropertyChanged;
-				// Assign new game.
+				// Assing new game.
 				CurrentGame = game;
 				Global.DHelper.SettingsChanged = true;
-				CurrentGame_PropertyChanged?.Invoke(null, null);
+				CurrentGame_PropertyChanged(null, null);
 				//// If pad controls not initializes yet then return.
 				//if (PadControls == null)
 				//	return;
@@ -80,34 +65,31 @@ namespace x360ce.App
 			}
 		}
 
-
-		/// <summary>
-		/// This method will be called during manual saving and automatically when form is closing.
-		/// </summary>
-		public static void SaveAll()
+		/// <summary>x360ce Options</summary>
+		public static XSettingsData<Options> OptionsData
 		{
-			Properties.Settings.Default.Save();
-			OptionsData.Save();
-			UserSettings.Save();
-			Summaries.Save();
-			Programs.Save();
-			UserGames.Save();
-			Presets.Save();
-			Layouts.Save();
-			UserDevices.Save();
-			UserMacros.Save();
-			PadSettings.Save();
-			UserInstances.Save();
-			XInputMaskScanner.FileInfoCache.Save();
+			get
+			{
+				lock (OptionsLock)
+				{
+					if (_OptionsData == null)
+					{
+						_OptionsData = new XSettingsData<Options>("Options.xml", "x360ce Options");
+						_OptionsData.Load();
+						if (_OptionsData.Items.Count == 0)
+						{
+							var o = new Options();
+							_OptionsData.Items.Add(o);
+						}
+						_OptionsData.Items[0].InitDefaults();
+					}
+					return _OptionsData;
+				}
+			}
 		}
+		public static XSettingsData<Options> _OptionsData;
 
-		// Main application options
-
-		/// <summary>Main application options.</summary>
-		public static XSettingsData<Options> OptionsData = new XSettingsData<Options>("Options.xml", "x360ce Options");
-
-		/// <summary>Property can be used as shorter access to main options.</summary>
-		public static Options Options { get { return OptionsData.Items.FirstOrDefault(); } }
+		public static Options Options { get { return OptionsData.Items[0]; } }
 
 		// Global settings.
 
@@ -132,8 +114,8 @@ namespace x360ce.App
 		/// <summary>User Devices. Contains hardware details about Direct Input Instances (Devices).</summary>
 		public static XSettingsData<Engine.Data.UserDevice> UserDevices = new XSettingsData<Engine.Data.UserDevice>("UserDevices.xml", "User Devices (Direct Input).");
 
-		/// <summary>User Macro Maps. Advanced maps to keyboard, mouse and XInput.</summary>
-		public static XSettingsData<Engine.Data.UserMacro> UserMacros = new XSettingsData<Engine.Data.UserMacro>("UserMacros.xml", "Keyboard, mouse and XInput macro maps.");
+		/// <summary>User Macro Maps. Advanced maps to keyboard, mouse and xinput.</summary>
+		public static XSettingsData<Engine.Data.UserMacro> UserMacros = new XSettingsData<Engine.Data.UserMacro>("UserMacros.xml", "Keyboard, mouse and xinput macro maps.");
 
 		/// <summary>User Instances. Map different Instance IDs to a single physical controller.</summary>
 		public static XSettingsData<Engine.Data.UserInstance> UserInstances = new XSettingsData<Engine.Data.UserInstance>("UserInstances.xml", "User Controller Instances. Maps same device to multiple instance GUIDs it has on multiple PCs.");
@@ -154,10 +136,16 @@ namespace x360ce.App
 		{
 			foreach (var item in settings)
 			{
-				// Always online if test device or get actual online state.
-				var isOnline =
-					TestDeviceHelper.ProductGuid.Equals(item.ProductGuid) ||
-					(GetDevice(item.InstanceGuid)?.IsOnline ?? false);
+				bool isOnline;
+				if (TestDeviceHelper.ProductGuid.Equals(item.ProductGuid))
+				{
+					isOnline = true;
+				}
+				else
+				{
+					var device = GetDevice(item.InstanceGuid);
+					isOnline = device == null ? false : device.IsOnline;
+				}
 				if (item.IsOnline != isOnline)
 					item.IsOnline = isOnline;
 			}
@@ -174,18 +162,17 @@ namespace x360ce.App
 
 		public static UserDevice[] GetMappedDevices(string fileName, bool includeOffline = false)
 		{
-			// Get all mapped user device instance GUIDs for the specified game.
-			var instanceGuids = UserSettings.ItemsToArraySynchronized()
-				// Filter by game name.
-				.Where(x => string.Equals(x.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+			// Get all mapped user instances.
+			var instanceGuids = UserSettings.ItemsToArraySyncronized()
+				// Filter by game.
+				.Where(x => string.Compare(x.FileName, fileName, true) == 0)
 				// Include only mapped devices.
 				.Where(x => x.MapTo > (int)MapTo.None)
-				// Select device instance GUIDs only.
+				// Select device instances only.
 				.Select(x => x.InstanceGuid)
 				.ToArray();
-
-			// Get all connected devices using the filtered instance GUIDs.
 			UserDevice[] userDevices;
+			// Get all connected devices.
 			lock (UserDevices.SyncRoot)
 			{
 				userDevices = UserDevices.Items
@@ -244,36 +231,9 @@ namespace x360ce.App
 
 		static object saveReadFileLock = new object();
 
-		#region ■ Load and Validate Data
+		#region Load and Validate Data
 
-		public static void Load()
-		{
-			// Load main application options first.
-			OptionsData.ValidateData = Options_ValidateData;
-			OptionsData.Load();
-			// Load user settings second.
-			UserSettings.ValidateData = UserSettings_ValidateData;
-			UserSettings.Load();
-			// Load settings which do not require validation.
-			Presets.Load();
-			Summaries.Load();
-			PadSettings.Load();
-			UserMacros.Load();
-			UserInstances.Load();
-			// Load settings which must be validated.
-			Programs.ValidateData = Programs_ValidateData;
-			Programs.Load();
-			UserGames.ValidateData = Games_ValidateData;
-			UserGames.Load();
-			Layouts.ValidateData = Layouts_ValidateData;
-			Layouts.Load();
-			// Load user devices and attach event which will hide them with HID Guardian when IsHidden property modified.
-			UserDevices.Load();
-			UserDevices.Items.ListChanged += UserDevices_Items_ListChanged;
-			UserDevices.Items.RaiseListChangedEvents = true;
-		}
-
-		public static void SetSynchronizingObject(TaskScheduler so = null)
+		public static void Load(TaskScheduler so = null)
 		{
 			// Make sure that all GridViews are updated on the same thread as MainForm when data changes.
 			// For example User devices will be removed and added on separate thread.
@@ -287,23 +247,30 @@ namespace x360ce.App
 			Programs.Items.SynchronizingObject = so;
 			Presets.Items.SynchronizingObject = so;
 			PadSettings.Items.SynchronizingObject = so;
+			//SettingsManager.Current.NotifySettingsChange = NotifySettingsChange;
+			UserSettings.ValidateData = UserSettings_ValidateData;
+			UserSettings.Load();
+			Summaries.Load();
+			// Make sure that data will be filtered before loading.
+			// Note: Make sure to load Programs before Games.
+			Programs.ValidateData = Programs_ValidateData;
+			Programs.Load();
+			// Make sure that data will be filtered before loading.
+			UserGames.ValidateData = Games_ValidateData;
+			UserGames.Load();
+			Presets.Load();
+			UserMacros.ValidateData = UserKeyboardMaps_ValidateData;
+			UserMacros.Load();
+			// Make sure that data will be filtered before loading.
+			Layouts.ValidateData = Layouts_ValidateData;
+			Layouts.Load();
+			PadSettings.Load();
+			UserDevices.Load();
+			// Update DataGrids asynchronously in order not to freeze interface during device detection/update.
+			UserDevices.Items.AsynchronousInvoke = true;
+			UserInstances.Load();
 			OptionsData.Items.SynchronizingObject = so;
 		}
-
-		//public void FixLeaks()
-		//{
-		//	UserSettings.FixLeaks();
-		//	Summaries.FixLeaks();
-		//	UserDevices.FixLeaks();
-		//	UserMacros.FixLeaks();
-		//	UserGames.FixLeaks();
-		//	UserInstances.FixLeaks();
-		//	Layouts.FixLeaks();
-		//	Programs.FixLeaks();
-		//	Presets.FixLeaks();
-		//	PadSettings.FixLeaks();
-		//	OptionsData.FixLeaks();
-		//}
 
 		static IList<Engine.Data.UserSetting> UserSettings_ValidateData(IList<Engine.Data.UserSetting> items)
 		{
@@ -342,7 +309,7 @@ namespace x360ce.App
 				item.ButtonB = "B Button";
 				item.ButtonBack = "Back";
 				item.ButtonGuide = "Guide";
-				item.ButtonStart = "StartDInputService";
+				item.ButtonStart = "Start";
 				item.ButtonX = "X Button";
 				item.ButtonY = "Y Button";
 				item.DPad = "D-Pad";
@@ -373,16 +340,8 @@ namespace x360ce.App
 			return items;
 		}
 
-		static IList<Options> Options_ValidateData(IList<Options> items)
+		static IList<Engine.Data.UserMacro> UserKeyboardMaps_ValidateData(IList<Engine.Data.UserMacro> items)
 		{
-			// If options empty then...
-			if (items.Count == 0)
-			{
-				var o = new Options();
-				items.Add(o);
-			}
-			// Set missing values to defaults.
-			items[0].InitializeDefaults();
 			return items;
 		}
 
@@ -462,26 +421,29 @@ namespace x360ce.App
 			return game;
 		}
 
-		#region ■ Static Version
+		#region Static Version
 
-		#region ■ Constants
+		#region Constants
+
+		public const string IniFileName = "x360ce.ini";
+		public const string TmpFileName = "x360ce.tmp";
 
 		public const string MappingsSection = "Mappings";
 		public const string OptionsSection = "Options";
 
 		#endregion // Constants
 
-		#region ■ Member Variables
+		#region Member Variables
 		static SettingsManager _current;
 		#endregion // Member Variables
 
-		#region ■ Public Methods
+		#region Public Methods
 		/// <summary>
 		/// Adds an entry in the control-setting map, generates a tool-tip for the setting.
 		/// </summary>
 		/// <param name="setting">The name of the setting.</param>
 		/// <param name="control">The control used to edit the setting.</param>
-		static public void AddMap<T>(Expression<Func<T, object>> setting, object control)
+		static public void AddMap<T>(Expression<Func<T, object>> setting, Control control)
 		{
 			// Get the member expression
 			var me = setting.Body as MemberExpression ?? ((UnaryExpression)setting.Body).Operand as MemberExpression;
@@ -496,11 +458,8 @@ namespace x360ce.App
 			var dvalAttr = GetCustomAttribute<DefaultValueAttribute>(prop);
 			// Display help inside yellow header.
 			// We could add settings EnableHelpTooltips=1, EnableHelpHeader=1
-			if (control is Control c)
-			{
-				c.MouseHover += control_MouseEnter;
-				c.MouseLeave += control_MouseLeave;
-			}
+			control.MouseHover += control_MouseEnter;
+			control.MouseLeave += control_MouseLeave;
 			var item = new SettingsMapItem();
 			item.Description = desc;
 			//item.IniSection = sectionName;
@@ -514,29 +473,32 @@ namespace x360ce.App
 			Current.SettingsMap.Add(item);
 		}
 
-
-		static public SettingsMapItem AddMap<T>(Expression<Func<T>> setting, Control control, MapTo mapTo = MapTo.None, MapCode code = default)
+		static public SettingsMapItem AddMap<T>(string sectionName, Expression<Func<T>> setting, Control control, MapTo mapTo = MapTo.None, MapCode code = default)
 		{
 			// Get the member expression
 			var me = (MemberExpression)setting.Body;
 			// Get the property
 			var prop = (PropertyInfo)me.Member;
+			// Get the setting name by reading the property
+			var keyName = (string)prop.GetValue(null, null);
+			if (string.IsNullOrEmpty(keyName))
+			{
+				keyName = prop.Name;
+			}
 			// Get the description attribute
 			var descAttr = GetCustomAttribute<DescriptionAttribute>(prop);
-			var desc = descAttr != null
-				? descAttr.Description
-				: string.Empty;
+			var desc = descAttr != null ? descAttr.Description : string.Empty;
 			// Get the default value attribute
 			var dvalAttr = GetCustomAttribute<DefaultValueAttribute>(prop);
-			var dval = descAttr != null
-				? (string)dvalAttr.Value
-				: null;
+			var dval = (string)(descAttr != null ? dvalAttr.Value : null);
 			// Display help inside yellow header.
 			// We could add settings EnableHelpTooltips=1, EnableHelpHeader=1
 			control.MouseHover += control_MouseEnter;
 			control.MouseLeave += control_MouseLeave;
 			var item = new SettingsMapItem();
 			item.Description = desc;
+			item.IniSection = sectionName;
+			item.IniKey = keyName;
 			item.Code = code;
 			item.Control = control;
 			item.MapTo = mapTo;
@@ -548,11 +510,10 @@ namespace x360ce.App
 			return item;
 		}
 
-
 		static void control_MouseLeave(object sender, EventArgs e)
 		{
 			//Console.WriteLine(string.Format("Mouse Leave: {0}", sender));
-			Global.HMan.SetBody(System.Windows.MessageBoxImage.None);
+			MainForm.Current.SetHeaderBody(MessageBoxIcon.None);
 		}
 
 		static void control_MouseEnter(object sender, EventArgs e)
@@ -562,13 +523,13 @@ namespace x360ce.App
 			var item = Current.SettingsMap.FirstOrDefault(x => x.Control == control);
 			if (item != null && !string.IsNullOrEmpty(item.Description))
 			{
-				Global.HMan.SetBodyInfo(item.Description);
+				MainForm.Current.SetHeaderInfo(item.Description);
 			}
 		}
 
 		#endregion // Public Methods
 
-		#region ■ Public Properties
+		#region Public Properties
 		/// <summary>
 		/// Gets the SettingManager singleton instance.
 		/// </summary>
@@ -578,7 +539,11 @@ namespace x360ce.App
 		}
 		#endregion // Public Properties
 		#endregion // Static Version
-		#region ■ Instance Version
+		#region Instance Version
+
+		public SettingsManager()
+		{
+		}
 
 		public int saveCount = 0;
 		public int loadCount = 0;
@@ -623,14 +588,14 @@ namespace x360ce.App
 			return (T)prop.GetCustomAttributes(typeof(T), false).FirstOrDefault();
 		}
 
-		//public void SetPadSetting(string padSectionName, DeviceInstance di)
-		//{
-		//	var ini2 = new Ini(IniFileName);
-		//	//ps.PadSettingChecksum = Guid.Empty;
-		//	ini2.SetValue(padSectionName, SettingName.ProductName, di.ProductName);
-		//	ini2.SetValue(padSectionName, SettingName.ProductGuid, di.ProductGuid.ToString());
-		//	ini2.SetValue(padSectionName, SettingName.InstanceGuid, di.InstanceGuid.ToString());
-		//}
+		public void SetPadSetting(string padSectionName, DeviceInstance di)
+		{
+			var ini2 = new Ini(IniFileName);
+			//ps.PadSettingChecksum = Guid.Empty;
+			ini2.SetValue(padSectionName, SettingName.ProductName, di.ProductName);
+			ini2.SetValue(padSectionName, SettingName.ProductGuid, di.ProductGuid.ToString());
+			ini2.SetValue(padSectionName, SettingName.InstanceGuid, di.InstanceGuid.ToString());
+		}
 
 		public void SetComboBoxValue(ComboBox cbx, string text)
 		{
@@ -660,18 +625,22 @@ namespace x360ce.App
 			cbx.SelectedIndex = 0;
 		}
 
-		#region ■ Load Settings
+		#region Load Settings
 
 		/// <summary>
 		/// Read setting from INI file into windows form control.
 		/// </summary>
-		public void LoadSetting(object control, string p = null, string value = null)
+		public void LoadSetting(Control control, string key = null, string value = null)
 		{
-			if (p != null && (
-				p == nameof(PadSetting.GamePadType) ||
-				p == nameof(PadSetting.ForceType) ||
-				p == nameof(PadSetting.LeftMotorDirection) ||
-				p == nameof(PadSetting.RightMotorDirection))
+			if (key != null && (
+				key == SettingName.HookMode ||
+				key.EndsWith(SettingName.GamePadType) ||
+				key.EndsWith(SettingName.ForceType) ||
+				key.EndsWith(SettingName.LeftMotorDirection) ||
+				key.EndsWith(SettingName.RightMotorDirection) ||
+				key.EndsWith(SettingName.PassThroughIndex) ||
+				key.EndsWith(SettingName.CombinedIndex)
+				)
 			)
 			{
 				var cbx = (ComboBox)control;
@@ -698,8 +667,9 @@ namespace x360ce.App
 				}
 			}
 			// If DI menu strip attached.
-			else if (control is ComboBox cbx)
+			else if (control is ComboBox)
 			{
+				var cbx = (ComboBox)control;
 				var map = SettingsMap.FirstOrDefault(x => x.Control == control);
 				if (map != null && map.Code != default)
 				{
@@ -708,24 +678,26 @@ namespace x360ce.App
 				}
 				else
 				{
-					cbx.Text = value;
+					control.Text = value;
 				}
 			}
-			else if (control is TextBox tbx)
+			else if (control is TextBox)
 			{
-				// If setting is read-only.
-				if (p == nameof(UserSetting.ProductName))
+				// if setting is read-only.
+				if (key == SettingName.ProductName)
 					return;
-				if (p == nameof(UserSetting.ProductGuid))
+				if (key == SettingName.ProductGuid)
 					return;
-				if (p == nameof(UserSetting.InstanceGuid))
+				if (key == SettingName.InstanceGuid)
 					return;
-				if (p == nameof(Options.SettingsVersion))
-					return;
-				tbx.Text = value;
+				// Always override version.
+				if (key == SettingName.Version)
+					value = SettingName.DefaultVersion;
+				control.Text = value;
 			}
-			else if (control is NumericUpDown nud)
+			else if (control is NumericUpDown)
 			{
+				var nud = (NumericUpDown)control;
 				decimal n = 0;
 				decimal.TryParse(value, out n);
 				if (n < nud.Minimum)
@@ -734,32 +706,27 @@ namespace x360ce.App
 					n = nud.Maximum;
 				nud.Value = n;
 			}
-			else if (control is TrackBar tc)
+			else if (control is TrackBar)
 			{
+				TrackBar tc = (TrackBar)control;
 				int n = 0;
 				int.TryParse(value, out n);
 				// convert 256  to 100%
-				if (p == nameof(PadSetting.AxisToDPadDeadZone) ||
-					p == nameof(PadSetting.AxisToDPadOffset) ||
-					p == nameof(PadSetting.LeftTriggerDeadZone) ||
-					p == nameof(PadSetting.RightTriggerDeadZone))
+				if (key == SettingName.AxisToDPadDeadZone || key == SettingName.AxisToDPadOffset || key == SettingName.LeftTriggerDeadZone || key == SettingName.RightTriggerDeadZone)
 				{
-					if (p == nameof(PadSetting.AxisToDPadDeadZone) && value == "")
+					if (key == SettingName.AxisToDPadDeadZone && value == "")
 						n = 256;
-						n = System.Convert.ToInt32(n / 256F * 100F);
+					n = System.Convert.ToInt32((float)n / 256F * 100F);
 				}
 				// Convert 500 to 100%
-				else if (p == nameof(PadSetting.LeftMotorPeriod) || p == nameof(PadSetting.RightMotorPeriod))
+				else if (key == SettingName.LeftMotorPeriod || key == SettingName.RightMotorPeriod)
 				{
-					n = System.Convert.ToInt32(n / 500F * 100F);
+					n = System.Convert.ToInt32((float)n / 500F * 100F);
 				}
 				// Convert 32767 to 100%
-				else if (p == nameof(PadSetting.LeftThumbDeadZoneX) ||
-						 p == nameof(PadSetting.LeftThumbDeadZoneY) ||
-						 p == nameof(PadSetting.RightThumbDeadZoneX) ||
-						 p == nameof(PadSetting.RightThumbDeadZoneY))
+				else if (key == SettingName.LeftThumbDeadZoneX || key == SettingName.LeftThumbDeadZoneY || key == SettingName.RightThumbDeadZoneX || key == SettingName.RightThumbDeadZoneY)
 				{
-					n = System.Convert.ToInt32(n / ((float)Int16.MaxValue) * 100F);
+					n = System.Convert.ToInt32((float)n / ((float)Int16.MaxValue) * 100F);
 				}
 				if (n < tc.Minimum)
 					n = tc.Minimum;
@@ -767,90 +734,92 @@ namespace x360ce.App
 					n = tc.Maximum;
 				tc.Value = n;
 			}
-			else if (control is CheckBox chb)
+			else if (control is CheckBox)
 			{
+				CheckBox tc = (CheckBox)control;
 				int n = 0;
 				int.TryParse(value, out n);
-				chb.Checked = n != 0;
+				tc.Checked = n != 0;
 			}
 		}
 
 		#endregion
 
-		#region ■ Save Settings
+		#region Save Settings
 
-		public string GetSettingValue(object control)
+		public string GetSettingValue(Control control)
 		{
 			var item = SettingsMap.First(x => x.Control == control);
-			var p = item.PropertyName;
+			var path = item.IniPath;
+			var section = path.Split('\\')[0];
+			string key = path.Split('\\')[1];
+			var padIndex = SettingName.GetPadIndex(path);
 			string v = string.Empty;
-			if (p == nameof(PadSetting.GamePadType) ||
-				p == nameof(PadSetting.ForceType) ||
-				p == nameof(PadSetting.LeftMotorDirection) ||
-				p == nameof(PadSetting.RightMotorDirection))
+			if (key == SettingName.HookMode ||
+				key.EndsWith(SettingName.GamePadType) ||
+				key.EndsWith(SettingName.ForceType) ||
+				key.EndsWith(SettingName.LeftMotorDirection) ||
+				key.EndsWith(SettingName.RightMotorDirection) ||
+				key.EndsWith(SettingName.PassThroughIndex) ||
+				key.EndsWith(SettingName.CombinedIndex))
 			{
 				var v1 = ((ComboBox)control).SelectedItem;
 				if (v1 == null)
-					v = "0";
+				{ v = "0"; }
 				else if (v1 is KeyValuePair)
-					v = ((KeyValuePair)v1).Value;
+				{ v = ((KeyValuePair)v1).Value; }
 				else
-					v = System.Convert.ToInt32(v1).ToString();
+				{ v = System.Convert.ToInt32(v1).ToString(); }
 			}
 			// If DI menu strip attached.
-			else if (control is ComboBox cbx)
+			else if (control is ComboBox)
 			{
+				var cbx = (ComboBox)control;
 				var map = SettingsMap.FirstOrDefault(x => x.Control == control);
 				if (map != null && map.Code != default)
 				{
-					v = SettingsConverter.ToIniValue(cbx.Text);
+					v = SettingsConverter.ToIniValue(control.Text);
 					// make sure that disabled button value is "0".
-					if (SettingName.IsButton(p) && string.IsNullOrEmpty(v))
+					if (SettingName.IsButton(key) && string.IsNullOrEmpty(v))
 						v = "0";
 				}
 				else
 				{
-					v = cbx.Text;
+					v = control.Text;
 				}
 			}
-			else if (control is TextBox tbx)
+			else if (control is TextBox)
 			{
 				// if setting is read-only.
-				if (p == nameof(UserSetting.InstanceGuid) || p == nameof(UserSetting.ProductGuid))
+				if (key == SettingName.InstanceGuid || key == SettingName.ProductGuid)
 				{
-					v = string.IsNullOrEmpty(tbx.Text) ? Guid.Empty.ToString("D") : tbx.Text;
+					v = string.IsNullOrEmpty(control.Text) ? Guid.Empty.ToString("D") : control.Text;
 				}
 				else
-					v = tbx.Text;
+					v = control.Text;
 			}
-			else if (control is NumericUpDown nud)
+			else if (control is NumericUpDown)
 			{
+				NumericUpDown nud = (NumericUpDown)control;
 				v = nud.Value.ToString();
 			}
 			else if (control is TrackBar)
 			{
 				TrackBar tc = (TrackBar)control;
 				// convert 100%  to 256
-				if (p == nameof(PadSetting.AxisToDPadDeadZone) ||
-					p == nameof(PadSetting.AxisToDPadOffset) ||
-					p == nameof(PadSetting.LeftTriggerDeadZone) ||
-					p == nameof(PadSetting.RightTriggerDeadZone))
+				if (key == SettingName.AxisToDPadDeadZone || key == SettingName.AxisToDPadOffset || key == SettingName.LeftTriggerDeadZone || key == SettingName.RightTriggerDeadZone)
 				{
-					v = System.Convert.ToInt32(tc.Value / 100F * 256F).ToString();
+					v = System.Convert.ToInt32((float)tc.Value / 100F * 256F).ToString();
 				}
 				// convert 100%  to 500
-				else if (p == nameof(PadSetting.LeftMotorPeriod) ||
-						 p == nameof(PadSetting.RightMotorPeriod))
+				else if (key == SettingName.LeftMotorPeriod || key == SettingName.RightMotorPeriod)
 				{
-					v = System.Convert.ToInt32(tc.Value / 100F * 500F).ToString();
+					v = System.Convert.ToInt32((float)tc.Value / 100F * 500F).ToString();
 				}
 				// Convert 100% to 32767
-				else if (p == nameof(PadSetting.LeftThumbDeadZoneX) ||
-						 p == nameof(PadSetting.LeftThumbDeadZoneY) ||
-						 p == nameof(PadSetting.RightThumbDeadZoneX) ||
-						 p == nameof(PadSetting.RightThumbDeadZoneY))
+				else if (key == SettingName.LeftThumbDeadZoneX || key == SettingName.LeftThumbDeadZoneY || key == SettingName.RightThumbDeadZoneX || key == SettingName.RightThumbDeadZoneY)
 				{
-					v = System.Convert.ToInt32(tc.Value / 100F * short.MaxValue).ToString();
+					v = System.Convert.ToInt32((float)tc.Value / 100F * ((float)Int16.MaxValue)).ToString();
 				}
 				else
 					v = tc.Value.ToString();
@@ -899,9 +868,44 @@ namespace x360ce.App
 
 		#endregion
 
+		static Guid GetInstanceGuid(MapTo mapTo)
+		{
+			var guidString = Current.SettingsMap.First(x => x.MapTo == mapTo && x.IniKey == SettingName.InstanceGuid).Control.Text;
+			// If instanceGuid value is not a GUID then exit.
+			if (!EngineHelper.IsGuid(guidString))
+				return Guid.Empty;
+			Guid ig = new Guid(guidString);
+			return ig;
+		}
+
+		static string GetInstanceSection(MapTo mapTo)
+		{
+			var ig = GetInstanceGuid(mapTo);
+			// If InstanceGuid value is empty then exit.
+			if (ig.Equals(Guid.Empty))
+				return null;
+			// Save settings to unique Instance section.
+			return Current.GetInstanceSection(ig);
+		}
+
 		public string GetInstanceSection(Guid instanceGuid)
 		{
 			return string.Format("IG_{0:N}", instanceGuid).ToUpper();
+		}
+
+		public string GetProductSection(Guid productGuid)
+		{
+			return string.Format("PG_{0:N}", productGuid).ToUpper();
+		}
+
+
+		public bool ContainsProductSection(Guid productGuid, string iniFileName, out string sectionName)
+		{
+			var ini2 = new Ini(iniFileName);
+			var section = GetProductSection(productGuid);
+			var contains = !string.IsNullOrEmpty(ini2.GetValue(section, "ProductGUID"));
+			sectionName = contains ? section : null;
+			return contains;
 		}
 
 		public bool ContainsInstanceSection(Guid instanceGuid, string iniFileName, out string sectionName)
@@ -937,7 +941,7 @@ namespace x360ce.App
 		public void FillSearchParameterWithInstances(List<SearchParameter> sp)
 		{
 			// Select user devices as parameters to search.
-			var userDevices = UserSettings.ItemsToArraySynchronized()
+			var userDevices = UserSettings.ItemsToArraySyncronized()
 				.Select(x => x.InstanceGuid).Distinct()
 				// Do not add empty records.
 				.Where(x => x != Guid.Empty)
@@ -949,7 +953,7 @@ namespace x360ce.App
 		public void FillSearchParameterWithFiles(List<SearchParameter> sp)
 		{
 			// Select enabled user game/device as parameters to search.
-			var settings = UserSettings.ItemsToArraySynchronized()
+			var settings = UserSettings.ItemsToArraySyncronized()
 				.Where(x => x.MapTo > 0).ToArray();
 			foreach (var setting in settings)
 			{
@@ -974,7 +978,7 @@ namespace x360ce.App
 		{
 			foreach (var ud in devices)
 			{
-				// Try to get existing setting by instance GUID and file name.
+				// Try to get existing setting by instance guid and file name.
 				var setting = GetSetting(ud.InstanceGuid, game.FileName);
 				// If device setting for the game was not found then.
 				if (setting == null)

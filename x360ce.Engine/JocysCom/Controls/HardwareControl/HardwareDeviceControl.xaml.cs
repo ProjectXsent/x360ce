@@ -9,7 +9,7 @@ namespace JocysCom.ClassLibrary.Controls
 	{
 		public HardwareDeviceControl()
 		{
-			InitHelper.InitTimer(this, InitializeComponent);
+			InitializeComponent();
 		}
 	}
 }

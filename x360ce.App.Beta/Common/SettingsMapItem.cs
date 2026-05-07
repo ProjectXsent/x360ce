@@ -6,7 +6,7 @@ namespace x360ce.App
 	public class SettingsMapItem
 	{
 
-		#region ■ INI
+		#region INI
 
 		/// <summary>
 		/// Property Section inside INI file.
@@ -18,12 +18,17 @@ namespace x360ce.App
 		/// </summary>
 		public string IniKey { get; set; }
 
+		/// <summary>
+		/// Property path inside INI file.
+		/// </summary>
+		public string IniPath { get { return string.Format("{0}\\{1}", IniSection, IniKey); } }
+
 		#endregion
 
 		/// <summary>
 		/// Property control inside windows application.
 		/// </summary>
-		public object Control { get; set; }
+		public System.Windows.Forms.Control Control { get; set; }
 		/// <summary>
 		/// Property name on .NET class.
 		/// </summary>

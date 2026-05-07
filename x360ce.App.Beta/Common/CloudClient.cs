@@ -17,7 +17,7 @@ namespace x360ce.App
 
 		object TasksTimerLock = new object();
 
-		public void StartServer(TaskScheduler scheduler, UserControl control = null)
+		public void StartServer(TaskScheduler scheduler, UserControl control)
 		{
 			lock (TasksTimerLock)
 			{
@@ -25,17 +25,9 @@ namespace x360ce.App
 					return;
 				TasksTimer = new QueueTimer<CloudItem>(0, 5000, scheduler);
 				TasksTimer.SynchronizingObject = null;
-				if (control == null)
-				{
-					TasksTimer.HasHandle = true;
-
-				}
-				else
-				{
-					control.HandleCreated += (sender, e) => { TasksTimer.HasHandle = true; };
-					control.HandleDestroyed += (sender, e) => { TasksTimer.HasHandle = false; };
-					TasksTimer.HasHandle = control.IsHandleCreated;
-				}
+				control.HandleCreated += (sender, e) => { TasksTimer.HasHandle = true; };
+				control.HandleDestroyed += (sender, e) => { TasksTimer.HasHandle = false; };
+				TasksTimer.HasHandle = control.IsHandleCreated;
 				TasksTimer.DoWork += queueTimer_DoWork;
 				TasksTimer.Queue.ListChanged += Data_ListChanged;
 				// Enable network monitoring.
@@ -97,7 +89,7 @@ namespace x360ce.App
 			if (item == null)
 				return;
 			item.Try++;
-			Global.HMan.AddTask(TaskName.CloudCommand);
+			MainForm.Current.AddTask(TaskName.CloudCommand);
 			Exception error = null;
 			try
 			{
@@ -160,7 +152,7 @@ namespace x360ce.App
 			{
 				error = ex;
 			}
-			Global.HMan.RemoveTask(TaskName.CloudCommand);
+			MainForm.Current.RemoveTask(TaskName.CloudCommand);
 			var success = error == null;
 			item.Error = error;
 			item.State = success ? CloudState.Done : CloudState.Error;
@@ -181,7 +173,7 @@ namespace x360ce.App
 			// If item added or deleted then...
 			if (e.ListChangedType == ListChangedType.ItemAdded || e.ListChangedType == ListChangedType.ItemDeleted)
 			{
-				var label = Global._MainWindow?.MainPanel?.CloudMessagesLabel;
+				var label = MainForm.Current?.CloudMessagesLabel;
 				if (label == null)
 					return;
 				// update main form status bar.
@@ -192,9 +184,9 @@ namespace x360ce.App
 		void ProcessResult(CloudMessage command, CloudMessage result)
 		{
 			// Execute on interface thread.
-			if (ControlsHelper.InvokeRequired)
+			if (MainForm.Current.InvokeRequired)
 			{
-				ControlsHelper.Invoke(new Action(() => ProcessResult(command, result)));
+				MainForm.Current.Invoke(new Action(() => ProcessResult(command, result)));
 				return;
 			}
 			switch (command.Action)
@@ -202,32 +194,32 @@ namespace x360ce.App
 				case CloudAction.Select:
 					if (result.UserGames != null)
 					{
-						Global._MainWindow.UserProgramsPanel.ListPanel.ImportAndBindItems(result.UserGames);
+						MainForm.Current.GameSettingsPanel.ImportAndBindItems(result.UserGames);
 						if (!string.IsNullOrEmpty(result.ErrorMessage))
 							if (result.ErrorCode != 0)
-								Global.HMan.SetBodyError(result.ErrorMessage);
+								MainForm.Current.SetHeaderError(result.ErrorMessage);
 							else
-								Global.HMan.SetBodyInfo(result.ErrorMessage);
+								MainForm.Current.SetHeaderInfo(result.ErrorMessage);
 					}
 					if (result.UserDevices != null)
 					{
-						Global._MainWindow.MainBodyPanel.DevicesPanel.ImportAndBindItems(result.UserDevices);
+						MainForm.Current.DevicesPanel.ImportAndBindItems(result.UserDevices);
 						if (!string.IsNullOrEmpty(result.ErrorMessage))
 							if (result.ErrorCode != 0)
-								Global.HMan.SetBodyError(result.ErrorMessage);
+								MainForm.Current.SetHeaderError(result.ErrorMessage);
 							else
-								Global.HMan.SetBodyInfo(result.ErrorMessage);
+								MainForm.Current.SetHeaderInfo(result.ErrorMessage);
 					}
 					break;
 				case CloudAction.CheckUpdates:
-					Global._MainWindow.ProcessUpdateResults(result);
+					MainForm.Current.ProcessUpdateResults(result);
 					break;
 			}
 		}
 
 
 
-		#region ■ Network Availability
+		#region Network Availability
 
 		private void NetworkChange_NetworkAddressChanged(object sender, EventArgs e)
 		{
@@ -243,7 +235,7 @@ namespace x360ce.App
 
 		#endregion
 
-		#region ■ IDisposable
+		#region IDisposable
 
 		public void Dispose()
 		{
@@ -251,7 +243,7 @@ namespace x360ce.App
 			GC.SuppressFinalize(this);
 		}
 
-		public bool IsDisposing;
+		bool IsDisposing;
 
 		// The bulk of the clean-up code is implemented in Dispose(bool)
 		protected virtual void Dispose(bool disposing)

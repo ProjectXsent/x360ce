@@ -96,7 +96,7 @@ namespace x360ce.App.Service
 			}
 		}
 
-		#region ■ IDisposable
+		#region IDisposable
 
 		protected virtual void Dispose(bool disposing)
 		{

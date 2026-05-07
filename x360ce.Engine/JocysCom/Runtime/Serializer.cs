@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Xml;
@@ -31,7 +31,7 @@ namespace JocysCom.ClassLibrary.Runtime
 				attempts -= 1;
 				try
 				{
-					// SUPPRESS: CWE-73: External Control of File Name or Path
+					// CWE-73: External Control of File Name or Path
 					// Note: False Positive. File path is not externally controlled by the user.
 					return System.IO.File.ReadAllBytes(path);
 				}
@@ -62,7 +62,7 @@ namespace JocysCom.ClassLibrary.Runtime
 				try
 				{
 					// WriteAllBytes will lock file for writing and reading.
-					// SUPPRESS: CWE-73: External Control of File Name or Path
+					// CWE-73: External Control of File Name or Path
 					// Note: False Positive. File path is not externally controlled by the user.
 					System.IO.File.WriteAllBytes(path, bytes);
 					return;
@@ -81,47 +81,97 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		#endregion
 
+		#region Bytes
+
+		static object ByteSerializersLock = new object();
+		static Dictionary<Type, BinaryFormatter> ByteSerializers;
+		static BinaryFormatter GetByteSerializer(Type type)
+		{
+			lock (ByteSerializersLock)
+			{
+				if (ByteSerializers == null) ByteSerializers = new Dictionary<Type, BinaryFormatter>();
+				if (!ByteSerializers.ContainsKey(type))
+				{
+					ByteSerializers.Add(type, new BinaryFormatter());
+				}
+			}
+			return ByteSerializers[type];
+		}
+
+		/// <summary>
+		/// Serialize object to byte array.
+		/// </summary>
+		/// <param name="o">The object to serialize.</param>
+		/// <returns>Byte array.</returns>
+		public static byte[] SerializeToBytes(object o)
+		{
+			if (o == null)
+				return null;
+			var serializer = GetByteSerializer(o.GetType());
+			var ms = new MemoryStream();
+			lock (serializer) { serializer.Serialize(ms, o); }
+			var bytes = ms.ToArray();
+			ms.Close();
+			return bytes;
+		}
+
+		/// <summary>
+		/// De-serialize object from byte array.
+		/// </summary>
+		/// <param name="bytes">Byte array representing object. </param>
+		/// <returns>Object.</returns>
+		public static object DeserializeFromBytes(byte[] bytes, Type type)
+		{
+			if (bytes == null)
+				return null;
+			var serializer = GetByteSerializer(type);
+			var ms = new MemoryStream(bytes);
+			object o;
+			lock (serializer) { o = serializer.Deserialize(ms); }
+			ms.Close();
+			return o;
+		}
+
+		/// <summary>
+		/// De-serialize object from byte array.
+		/// </summary>
+		/// <param name="bytes">Byte array representing object. </param>
+		/// <returns>Object.</returns>
+		public static T DeserializeFromBytes<T>(byte[] bytes)
+		{
+			return (T)DeserializeFromBytes(bytes, typeof(T));
+		}
+
+		#endregion
+
 		#region JSON
 
-		/// <summary>Cache data for speed.</summary>
-		/// <remarks>Cache allows for this class to work 20 times faster.</remarks>
-		private static ConcurrentDictionary<Type, DataContractJsonSerializer> JsonSerializers = new ConcurrentDictionary<Type, DataContractJsonSerializer>();
+		// Notes: Use [DataMember(EmitDefaultValue = false, IsRequired = false)] attribute
+		// if you don't want to serialize default values.
 
-		static DataContractJsonSerializer GetJsonSerializer(Type type, DataContractJsonSerializerSettings settings = null)
+		static object JsonSerializersLock = new object();
+		static Dictionary<Type, DataContractJsonSerializer> JsonSerializers;
+		public static DataContractJsonSerializer GetJsonSerializer(Type type, DataContractJsonSerializerSettings settings = null)
 		{
-			if (type == null)
-				return null;
-			return JsonSerializers.GetOrAdd(type, x => new DataContractJsonSerializer(type, settings));
+			lock (JsonSerializersLock)
+			{
+				if (JsonSerializers == null) JsonSerializers = new Dictionary<Type, DataContractJsonSerializer>();
+				if (!JsonSerializers.ContainsKey(type))
+				{
+					// Simple dictionary format looks like this: { "Key1": "Value1", "Key2": "Value2" }
+					// DataContractJsonSerializerSettings requires .NET 4.5
+					if (settings == null)
+					{
+						settings = new DataContractJsonSerializerSettings();
+						settings.IgnoreExtensionDataObject = true;
+						settings.UseSimpleDictionaryFormat = true;
+					}
+					var serializer = new DataContractJsonSerializer(type, settings);
+					JsonSerializers.Add(type, serializer);
+				}
+			}
+			return JsonSerializers[type];
 		}
-
-		// DataContractJsonSerializerSettings requires .NET 4.5
-		static DataContractJsonSerializerSettings settings = new DataContractJsonSerializerSettings()
-		{
-			IgnoreExtensionDataObject = true,
-			// Simple dictionary format looks like this: { "Key1": "Value1", "Key2": "Value2" }
-			UseSimpleDictionaryFormat = true,
-		};
-
-		public static Func<object, Encoding, string> _SerializeToJson;
-		public static Func<string, Type, Encoding, object> _DeserializeFromJson;
-
-#if NETCOREAPP
-		private static System.Text.Json.JsonSerializerOptions GetJsonOptions()
-		{
-			var options = new System.Text.Json.JsonSerializerOptions();
-#if NETCOREAPP2_1 || NETCOREAPP3_0 || NETCOREAPP3_1
-			options.IgnoreNullValues = true;
-#else
-			options.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-#endif
-			options.PropertyNamingPolicy = null;
-			options.WriteIndented = true;
-			options.MaxDepth = 64;
-			// Add support for de-serializing enumeration strings.
-			options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-			return options;
-		}
-#endif
 
 		/// <summary>
 		/// Serialize object to JSON string.
@@ -131,19 +181,20 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <returns>JSON string.</returns>
 		public static string SerializeToJson(object o, Encoding encoding = null)
 		{
-			if (_SerializeToJson != null)
-				return _SerializeToJson(o, encoding);
-			if (o is null)
+			if (o == null)
 				return null;
 #if NETCOREAPP
-			var options = GetJsonOptions();
-			var json = System.Text.Json.JsonSerializer.Serialize(o, o.GetType(), options);
-			return json;
+			var options = new System.Text.Json.JsonSerializerOptions();
+			options.IgnoreNullValues = true;
+			options.PropertyNamingPolicy = null;
+			options.WriteIndented = true;
+			options.MaxDepth = 64;
+			return System.Text.Json.JsonSerializer.Serialize(o, o.GetType(), options);
 #else
 			var serializer = GetJsonSerializer(o.GetType());
 			var ms = new MemoryStream();
 			lock (serializer) { serializer.WriteObject(ms, o); }
-			if (encoding is null)
+			if (encoding == null)
 				encoding = Encoding.UTF8;
 			var json = encoding.GetString(ms.ToArray());
 			ms.Close();
@@ -160,17 +211,18 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <returns>The de-serialized object.</returns>
 		public static object DeserializeFromJson(string json, Type type, Encoding encoding = null)
 		{
-			if (_DeserializeFromJson != null)
-				return _DeserializeFromJson(json, type, encoding);
-			if (json is null)
+			if (json == null)
 				return null;
 #if NETCOREAPP
-			var options = GetJsonOptions();
-			var o = System.Text.Json.JsonSerializer.Deserialize(json, type, options);
-			return o;
+			var options = new System.Text.Json.JsonSerializerOptions();
+			options.IgnoreNullValues = true;
+			options.PropertyNamingPolicy = null;
+			options.WriteIndented = true;
+			options.MaxDepth = 64;
+			return System.Text.Json.JsonSerializer.Deserialize(json, type, options);
 #else
 			var serializer = GetJsonSerializer(type);
-			if (encoding is null)
+			if (encoding == null)
 				encoding = Encoding.UTF8;
 			var bytes = encoding.GetBytes(json);
 			var ms = new MemoryStream(bytes);
@@ -193,35 +245,19 @@ namespace JocysCom.ClassLibrary.Runtime
 		}
 
 		// Created by: https://stackoverflow.com/users/17211/vince-panuccio
-		// https://stackoverflow.com/questions/4580397/json-formatter-in-c
-		public static string FormatJson(string json, string indent = "\t")
+		public static string FormatJson(string json, string ident = "\t")
 		{
 			var indentation = 0;
 			var quoteCount = 0;
-			var escapeCount = 0;
 			var result =
-				from ch in json ?? string.Empty
-				let escaped = (ch == '\\' ? escapeCount++ : escapeCount > 0 ? escapeCount-- : escapeCount) > 0
-				let quotes = ch == '"' && !escaped ? quoteCount++ : quoteCount
-				let unquoted = quotes % 2 == 0
-				let colon = ch == ':' && unquoted ? ": " : null
-				let nospace = char.IsWhiteSpace(ch) && unquoted ? string.Empty : null
-				let lineBreak = ch == ',' && unquoted ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(indent, indentation)) : null
-				let openChar = (ch == '{' || ch == '[') && unquoted ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(indent, ++indentation)) : ch.ToString()
-				let closeChar = (ch == '}' || ch == ']') && unquoted ? Environment.NewLine + string.Concat(Enumerable.Repeat(indent, --indentation)) + ch : ch.ToString()
-				select colon ?? nospace ?? lineBreak ?? (openChar.Length > 1 ? openChar : closeChar);
+				from ch in json
+				let quotes = ch == '"' ? quoteCount++ : quoteCount
+				let lineBreak = ch == ',' && quotes % 2 == 0 ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(ident, indentation)) : null
+				let openChar = ch == '{' || ch == '[' ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(ident, ++indentation)) : ch.ToString()
+				let closeChar = ch == '}' || ch == ']' ? Environment.NewLine + string.Concat(Enumerable.Repeat(ident, --indentation)) + ch : ch.ToString()
+				select lineBreak == null ? openChar.Length > 1 ? openChar : closeChar : lineBreak;
 			return string.Concat(result);
 		}
-
-		//public static string FormatJson(string json, bool indent = true)
-		//{
-		//	using document = JsonDocument.Parse(json);
-		//	using var stream = new MemoryStream();
-		//	using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions() { Indented = indent });
-		//	document.WriteTo(writer);
-		//	writer.Flush();
-		//	return Encoding.UTF8.GetString(stream.ToArray());
-		//}
 
 		#endregion
 
@@ -241,11 +277,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			var xws = new XmlWriterSettings();
 			xws.Indent = true;
 			xws.CheckCharacters = true;
-			// XmlReader normalizes all newlines and converts '\r\n' to '\n'.
-			// This requires to save NewLines with  option which
-			// "Entitize" option replace '\r' with '&#xD;' in text node values.
-			xws.NewLineHandling = NewLineHandling.Entitize;
-			var xw = XmlWriter.Create(sb, xws);
+			var xw = XmlTextWriter.Create(sb, xws);
 			xd.WriteTo(xw);
 			xw.Close();
 			return sb.ToString();
@@ -257,7 +289,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		{
 			lock (XmlSerializersLock)
 			{
-				if (XmlSerializers is null)
+				if (XmlSerializers == null)
 					XmlSerializers = new Dictionary<Type, XmlSerializer>();
 				if (!XmlSerializers.ContainsKey(type))
 				{
@@ -279,7 +311,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <returns>XML document</returns>
 		public static XmlDocument SerializeToXml(object o)
 		{
-			if (o is null)
+			if (o == null)
 				return null;
 			var serializer = GetXmlSerializer(o.GetType());
 			var ms = new MemoryStream();
@@ -288,7 +320,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			var doc = new XmlDocument();
 			doc.XmlResolver = null;
 			// Settings used to protect from:
-			// SUPPRESS: CWE-611: Improper Restriction of XML External Entity Reference('XXE')
+			// CWE-611: Improper Restriction of XML External Entity Reference('XXE')
 			// https://cwe.mitre.org/data/definitions/611.html
 			var settings = new XmlReaderSettings();
 			settings.DtdProcessing = DtdProcessing.Ignore;
@@ -303,7 +335,7 @@ namespace JocysCom.ClassLibrary.Runtime
 
 		static T SeriallizeToXml<T>(object o, Encoding encoding = null, bool omitXmlDeclaration = false, string comment = null, bool indent = true)
 		{
-			if (o is null)
+			if (o == null)
 				return default(T);
 			// Create serialization settings.
 			encoding = encoding ?? Encoding.UTF8;
@@ -311,10 +343,6 @@ namespace JocysCom.ClassLibrary.Runtime
 			settings.OmitXmlDeclaration = omitXmlDeclaration;
 			settings.Encoding = encoding;
 			settings.Indent = indent;
-			// XmlReader normalizes all newlines and converts '\r\n' to '\n'.
-			// This requires to save NewLines with  option which
-			// "Entitize" option replace '\r' with '&#xD;' in text node values.
-			settings.NewLineHandling = NewLineHandling.Entitize;
 			// Serialize.
 			var serializer = GetXmlSerializer(o.GetType());
 			// Serialize in memory first, so file will be locked for shorter times.
@@ -398,7 +426,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <param name="encoding">The encoding to use (default is UTF8).</param>
 		public static void SerializeToXmlFile(object o, string path, Encoding encoding = null, bool omitXmlDeclaration = false, string comment = null, int attempts = 2, int waitTime = 500)
 		{
-			var bytes = (o is null)
+			var bytes = (o == null)
 				? new byte[0]
 				: SeriallizeToXml<byte[]>(o, encoding, omitXmlDeclaration, comment);
 			// Write serialized data into file.
@@ -411,9 +439,9 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <param name="o">The object to serialize.</param>
 		/// <param name="path">The file name to write to.</param>
 		/// <param name="encoding">The encoding to use (default is UTF8).</param>
-		public static byte[] SerializeToXmlBytes(object o, Encoding encoding = null, bool omitXmlDeclaration = false, string comment = null)
+		public static byte[] SerializeToXmlBytes(object o, Encoding encoding = null, bool omitXmlDeclaration = false, string comment = null, int attempts = 2, int waitTime = 500)
 		{
-			var bytes = (o is null)
+			var bytes = (o == null)
 				? new byte[0]
 				: SeriallizeToXml<byte[]>(o, encoding, omitXmlDeclaration, comment);
 			return bytes;
@@ -431,7 +459,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <returns>XML document</returns>
 		public static object DeserializeFromXml(XmlDocument doc, Type type)
 		{
-			if (doc is null)
+			if (doc == null)
 				return null;
 			return DeserializeFromXmlString(doc.OuterXml, type);
 		}
@@ -450,12 +478,11 @@ namespace JocysCom.ClassLibrary.Runtime
 			// Use specified encoding if Byte Order Mark (BOM) is missing.
 			var sr = new StreamReader(ms, encoding ?? Encoding.UTF8, true);
 			// Settings used to protect from
-			// SUPPRESS: CWE-611: Improper Restriction of XML External Entity Reference('XXE')
+			// CWE-611: Improper Restriction of XML External Entity Reference('XXE')
 			// https://cwe.mitre.org/data/definitions/611.html
 			var settings = new XmlReaderSettings();
 			settings.DtdProcessing = DtdProcessing.Ignore;
 			settings.XmlResolver = null;
-			settings.IgnoreWhitespace = true;
 			// Stream 'ms' and 'sr' will be disposed by the reader.
 			using (var reader = XmlReader.Create(sr, settings))
 			{
@@ -492,7 +519,7 @@ namespace JocysCom.ClassLibrary.Runtime
 			// You should use "StreamReader" on file content, because this method will strip BOM properly
 			// when converting bytes to string.
 			// Settings used to protect from
-			// SUPPRESS: CWE-611: Improper Restriction of XML External Entity Reference('XXE')
+			// CWE-611: Improper Restriction of XML External Entity Reference('XXE')
 			// https://cwe.mitre.org/data/definitions/611.html
 			var settings = new XmlReaderSettings();
 			settings.DtdProcessing = DtdProcessing.Ignore;
@@ -530,7 +557,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		{
 			// Read full file content first, so file will be locked for shorter period of time.
 			var bytes = ReadFile(filename, attempts, waitTime);
-			if (bytes is null || bytes.Length == 0)
+			if (bytes == null || bytes.Length == 0)
 				return null;
 			return DeserializeFromXmlBytes(bytes, type, encoding);
 		}
@@ -591,7 +618,7 @@ namespace JocysCom.ClassLibrary.Runtime
 		/// <param name="encoding">The encoding to use (default is UTF8).</param>
 		public static void SerializeToXsdFile(object o, string path, Encoding encoding = null, bool omitXmlDeclaration = false, int attempts = 2, int waitTime = 500)
 		{
-			if (o is null)
+			if (o == null)
 			{
 				WriteFile(path, new byte[0], attempts, waitTime);
 				return;
@@ -602,10 +629,6 @@ namespace JocysCom.ClassLibrary.Runtime
 			settings.OmitXmlDeclaration = omitXmlDeclaration;
 			settings.Encoding = encoding;
 			settings.Indent = true;
-			// XmlReader normalizes all newlines and converts '\r\n' to '\n'.
-			// This requires to save NewLines with  option which
-			// "Entitize" option replace '\r' with '&#xD;' in text node values.
-			settings.NewLineHandling = NewLineHandling.Entitize;
 			// Serialize in memory first, so file will be locked for shorter times.
 			var ms = new MemoryStream();
 			var xw = XmlWriter.Create(ms, settings);
