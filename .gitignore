@@ -248,3 +248,4 @@ ModelManifest.xml
 /.vscode
 /.ai/temp
 __pycache__
+/MinHook
