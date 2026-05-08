@@ -3,9 +3,9 @@ SET file=%~1
 SET dst32=..\..\x360ce.App\Resources\x86\dinput8.dll
 SET dst64=..\..\x360ce.App\Resources\x64\dinput8.dll
 IF "%file%" == "" (
-	IF NOT EXIST "%dst32%" COPY "..\..\x360ce\dinput8\bin\Release\dinput8.dll" "%dst32%"
+	IF NOT EXIST "%dst32%" COPY "..\..\Native\dinput8\bin\Release\dinput8.dll" "%dst32%"
 	CALL:SIG "%dst32%"
-	IF NOT EXIST "%dst64%" COPY "..\..\x360ce\dinput8\bin64\Release\dinput8.dll" "%dst64%"
+	IF NOT EXIST "%dst64%" COPY "..\..\Native\dinput8\bin64\Release\dinput8.dll" "%dst64%"
 	CALL:SIG "%dst64%"
 )
 :: If file name was supplied then sign file.

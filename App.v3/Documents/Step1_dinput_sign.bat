@@ -4,11 +4,11 @@ SET dst32=..\..\x360ce.App\Resources\dinput_x86.dll
 SET dst64=..\..\x360ce.App\Resources\dinput_x64.dll
 SET dstMS=..\..\x360ce.App\Resources\dinput.dll
 IF "%file%" == "" (
-	IF NOT EXIST "%dstMS%" COPY "..\..\x360ce\dinput8\bin\Release\dinput8.dll" "%dstMS%"
+	IF NOT EXIST "%dstMS%" COPY "..\..\Native\dinput8\bin\Release\dinput8.dll" "%dstMS%"
 	CALL:SIG "%dstMS%"
-	IF NOT EXIST "%dst32%" COPY "..\..\x360ce\dinput8\bin\Release\dinput8.dll" "%dst32%"
+	IF NOT EXIST "%dst32%" COPY "..\..\Native\dinput8\bin\Release\dinput8.dll" "%dst32%"
 	CALL:SIG "%dst32%"
-	IF NOT EXIST "%dst64%" COPY "..\..\x360ce\dinput8\bin64\Release\dinput8.dll" "%dst64%"
+	IF NOT EXIST "%dst64%" COPY "..\..\Native\dinput8\bin64\Release\dinput8.dll" "%dst64%"
 	CALL:SIG "%dst64%"
 )
 :: If file name was supplied then sign file.

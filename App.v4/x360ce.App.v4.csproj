@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{737B79B1-5D5C-46D8-9D2B-BEAB460E42F0}</ProjectGuid>
+    <ProjectGuid>{00A8380D-72CB-4AD3-A8C4-0AF44BA2AEE0}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>x360ce.App</RootNamespace>
@@ -42,13 +42,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug_x86\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;CODE_ANALYSIS</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Prefer32Bit>false</Prefer32Bit>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\Release_x86\</OutputPath>
@@ -59,7 +60,6 @@
     <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -101,8 +101,14 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.mshtml, Version=7.0.3300.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="SharpDX">
@@ -111,6 +117,10 @@
     </Reference>
     <Reference Include="SharpDX.DirectInput">
       <HintPath>Resources\SharpDX\SharpDX.DirectInput.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX.RawInput">
+      <HintPath>Resources\SharpDX\SharpDX.RawInput.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -122,27 +132,115 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.EnterpriseServices" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Management.Instrumentation" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Services" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
+    <Reference Include="UIAutomationProvider" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\AdminCommand.cs" />
     <Compile Include="Common\AppHelper.cs" />
+    <Compile Include="Common\AutoMapHelper.cs" />
+    <Compile Include="Common\CertificateHelper.cs" />
+    <Compile Include="Common\CloudClient.cs" />
     <Compile Include="Common\CloudItem.cs" />
     <Compile Include="Common\CloudState.cs" />
     <Compile Include="Common\DeadZoneControlsLink.cs" />
-    <Compile Include="Common\DirectInputState.cs" />
+    <Compile Include="Common\DInput\DInputEventArgs.cs" />
+    <Compile Include="Common\DInput\DInputException.cs" />
+    <Compile Include="Common\DInput\DInputHelper.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step1.UpdateDevices.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step2.UpdateDiStates.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step4.CombineXiStates.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step3.UpdateXiStates.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step5.VirtualDevices.cs" />
+    <Compile Include="Common\DInput\DInputHelper.Step6.RetrieveXiStates.cs" />
+    <Compile Include="Common\DInput\DInputHelper.XInputLibrarry.cs" />
+    <Compile Include="Common\DInput\Recorder.cs" />
+    <Compile Include="Common\DInput\VirtualDriverInstaller.cs" />
+    <Compile Include="Common\DInput\VirtualError.cs" />
+    <Compile Include="Common\Downloader.cs" />
+    <Compile Include="Common\DownloaderEventArgs.cs" />
+    <Compile Include="Common\DownloaderParams.cs" />
     <Compile Include="Common\Extensions.cs" />
-    <Compile Include="Common\GameDatabaseManager.cs" />
+    <Compile Include="Common\ImageInfo.cs" />
+    <Compile Include="Common\ImageInfos.cs" />
+    <Compile Include="Common\NavImageType.cs" />
+    <Compile Include="Common\SettingChangedEventArgs.cs" />
+    <Compile Include="Common\UpdateFrequency.cs" />
     <Compile Include="Common\HookMode.cs" />
     <Compile Include="Common\KeyValuePair.cs" />
+    <Compile Include="Common\LogItem.cs" />
+    <Compile Include="Common\Options.cs" />
     <Compile Include="Common\RuntimePolicyHelper.cs" />
     <Compile Include="Common\SettingEventArgs.cs" />
-    <Compile Include="Common\SettingManager.cs" />
-    <Compile Include="Common\SettingsData.cs" />
+    <Compile Include="Common\SettingsManager.cs" />
+    <Compile Include="Common\SettingsManager.Events.cs" />
+    <Compile Include="Common\SettingsManager.XML.cs" />
+    <Compile Include="Common\TaskName.cs" />
+    <Compile Include="Common\TestDeviceHelper.cs" />
     <Compile Include="Common\Vendor.cs" />
-    <Compile Include="Common\WarningItem.cs" />
+    <Compile Include="Common\ControlHelper.cs" />
+    <Compile Include="Common\WinVerify.cs" />
+    <Compile Include="Controls\LogUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\LogUserControl.Designer.cs">
+      <DependentUpon>LogUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\JcDataGridView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\OptionsInternetUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\OptionsInternetUserControl.Designer.cs">
+      <DependentUpon>OptionsInternetUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\DebugUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\DebugUserControl.Designer.cs">
+      <DependentUpon>DebugUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PadTabPages\General\PadControlImager.cs" />
+    <Compile Include="Controls\PadTabPages\IPadControl.cs" />
+    <Compile Include="Controls\PresetsGridUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\PresetsGridUserControl.Designer.cs">
+      <DependentUpon>PresetsGridUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\ProgramsGridUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\ProgramsGridUserControl.Designer.cs">
+      <DependentUpon>ProgramsGridUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SettingsGridUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SettingsGridUserControl.Designer.cs">
+      <DependentUpon>SettingsGridUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SummariesGridUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SummariesGridUserControl.Designer.cs">
+      <DependentUpon>SummariesGridUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\UserDevicesUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\UserDevicesUserControl.Designer.cs">
+      <DependentUpon>UserDevicesUserControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\AboutControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -155,23 +253,77 @@
     <Compile Include="Controls\AxisToButtonUserControl.Designer.cs">
       <DependentUpon>AxisToButtonUserControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\DirectInputControl.cs">
+    <Compile Include="Controls\PadTabPages\MacrosControl.xaml.cs">
+      <DependentUpon>MacrosControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PadTabPages\General\XboxImageControl.xaml.cs">
+      <DependentUpon>XboxImageControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PadTabPages\XInputControl.xaml.cs">
+      <DependentUpon>XInputControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\BaseFormWithHeader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\BaseFormWithHeader.Designer.cs">
+      <DependentUpon>BaseFormWithHeader.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\CloudUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\DirectInputControl.Designer.cs">
+    <Compile Include="Controls\CloudUserControl.Designer.cs">
+      <DependentUpon>CloudUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PadTabPages\DirectInputControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\PadTabPages\DirectInputControl.Designer.cs">
       <DependentUpon>DirectInputControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\GameSettingDetailsUserControl.cs">
+    <Compile Include="Controls\GameDetailsUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\GameSettingDetailsUserControl.Designer.cs">
-      <DependentUpon>GameSettingDetailsUserControl.cs</DependentUpon>
+    <Compile Include="Controls\GameDetailsUserControl.Designer.cs">
+      <DependentUpon>GameDetailsUserControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\ThumbUserControl.cs">
+    <Compile Include="Forms\DebugForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DebugForm.Designer.cs">
+      <DependentUpon>DebugForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\DeveloperToolsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\DeveloperToolsForm.Designer.cs">
+      <DependentUpon>DeveloperToolsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ErrorReportWindow.xaml.cs">
+      <DependentUpon>ErrorReportWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\HardwareForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\HardwareForm.Designer.cs">
+      <DependentUpon>HardwareForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\LoadPresetsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\LoadPresetsForm.Designer.cs">
+      <DependentUpon>LoadPresetsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\MapDeviceToControllerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\MapDeviceToControllerForm.Designer.cs">
+      <DependentUpon>MapDeviceToControllerForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\AxisMapUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\ThumbUserControl.Designer.cs">
-      <DependentUpon>ThumbUserControl.cs</DependentUpon>
+    <Compile Include="Controls\AxisMapUserControl.Designer.cs">
+      <DependentUpon>AxisMapUserControl.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\LoadingCircle.cs">
       <SubType>Component</SubType>
@@ -180,29 +332,17 @@
       <DependentUpon>LoadingCircle.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\LoadingCircleToolStripMenuItem.cs" />
-    <Compile Include="Controls\MessageBoxForm.cs">
+    <Compile Include="Forms\NewDeviceForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Controls\MessageBoxForm.Designer.cs">
-      <DependentUpon>MessageBoxForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Controls\NewDeviceForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Controls\NewDeviceForm.Designer.cs">
+    <Compile Include="Forms\NewDeviceForm.Designer.cs">
       <DependentUpon>NewDeviceForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\ControllerSettingsUserControl.cs">
+    <Compile Include="Controls\OptionsUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\ControllerSettingsUserControl.Designer.cs">
-      <DependentUpon>ControllerSettingsUserControl.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Controls\OptionsControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Controls\OptionsControl.Designer.cs">
-      <DependentUpon>OptionsControl.cs</DependentUpon>
+    <Compile Include="Controls\OptionsUserControl.Designer.cs">
+      <DependentUpon>OptionsUserControl.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\PadControl.cs">
       <SubType>UserControl</SubType>
@@ -210,30 +350,67 @@
     <Compile Include="Controls\PadControl.Designer.cs">
       <DependentUpon>PadControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\GameSettingsUserControl.cs">
+    <Compile Include="Controls\PadTabPages\GamesControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\GameSettingsUserControl.Designer.cs">
-      <DependentUpon>GameSettingsUserControl.cs</DependentUpon>
+    <Compile Include="Controls\PadTabPages\GamesControl.Designer.cs">
+      <DependentUpon>GamesControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Html2Rtf\Converter.cs" />
-    <Compile Include="Issues\ArchitectureIssue.cs" />
-    <Compile Include="Issues\DllFileIssue.cs" />
-    <Compile Include="Issues\ExeFileIssue.cs" />
-    <Compile Include="Issues\GdbFileClass.cs" />
-    <Compile Include="Issues\IssueSeverity.cs" />
-    <Compile Include="Issues\LeakDetectorIssue.cs" />
-    <Compile Include="Issues\MdkIssue.cs" />
-    <Compile Include="Issues\IniFileIssue.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Controls\WarningsForm.cs">
+    <Compile Include="Forms\PromptForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Controls\WarningsForm.Designer.cs">
-      <DependentUpon>WarningsForm.cs</DependentUpon>
+    <Compile Include="Forms\PromptForm.Designer.cs">
+      <DependentUpon>PromptForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Issues\DirectXIssue.cs" />
+    <Compile Include="Forms\UpdateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\UpdateForm.Designer.cs">
+      <DependentUpon>UpdateForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\WebBrowserForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\WebBrowserForm.Designer.cs">
+      <DependentUpon>WebBrowserForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Global.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Html2Rtf\Converter.cs" />
+    <Compile Include="Issues\ArchitectureIssue.cs" />
+    <Compile Include="Issues\CppX64RuntimeInstallIssue.cs" />
+    <Compile Include="Issues\CppX86RuntimeInstallIssue.cs" />
+    <Compile Include="Issues\ExeFileIssue.cs" />
+    <Compile Include="Issues\HotfixIssue.cs" />
+    <Compile Include="Issues\HidGuardianDriverIssue.cs" />
+    <Compile Include="Issues\VirtualDeviceDriverIssue.cs" />
+    <Compile Include="Issues\XboxDriversIssue.cs" />
+    <Compile Include="MainForm.Tray.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Program.AdminCommands.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Common\SettingsMapItem.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Service\RemoteService.cs" />
+    <Compile Include="ViGEm\Client\Enums\VIGEM_TARGET_TYPE.cs" />
+    <Compile Include="ViGEm\Client\Enums\XUSB_REPORT.cs" />
+    <Compile Include="ViGEm\Client\ViGEmException.cs" />
+    <Compile Include="ViGEm\Client\Targets\Xbox360Controller.cs" />
+    <Compile Include="ViGEm\Client\Targets\Xbox360\Xbox360FeedbackReceivedEventArgs.cs" />
+    <Compile Include="ViGEm\Client\Targets\Xbox360\Xbox360Report.cs" />
+    <Compile Include="ViGEm\Client\ViGEmClient.cs" />
+    <Compile Include="ViGEm\Client\ViGEmClient.Native.cs" />
+    <Compile Include="ViGEm\Client\ViGEmClient.x360ce.cs" />
+    <Compile Include="ViGEm\Client\ViGEmTarget.cs" />
+    <Compile Include="ViGEm\Client\Enums\VIGEM_ERROR.cs" />
+    <Compile Include="ViGEm\HidGuardianHelper.cs" />
     <EmbeddedResource Include="Controls\AboutControl.resx">
       <DependentUpon>AboutControl.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -241,52 +418,91 @@
     <EmbeddedResource Include="Controls\AxisToButtonUserControl.resx">
       <DependentUpon>AxisToButtonUserControl.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\DirectInputControl.resx">
+    <EmbeddedResource Include="Controls\LogUserControl.resx">
+      <DependentUpon>LogUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\OptionsInternetUserControl.resx">
+      <DependentUpon>OptionsInternetUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\DebugUserControl.resx">
+      <DependentUpon>DebugUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\PresetsGridUserControl.resx">
+      <DependentUpon>PresetsGridUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\ProgramsGridUserControl.resx">
+      <DependentUpon>ProgramsGridUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\SettingsGridUserControl.resx">
+      <DependentUpon>SettingsGridUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\SummariesGridUserControl.resx">
+      <DependentUpon>SummariesGridUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\UserDevicesUserControl.resx">
+      <DependentUpon>UserDevicesUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\BaseFormWithHeader.resx">
+      <DependentUpon>BaseFormWithHeader.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\CloudUserControl.resx">
+      <DependentUpon>CloudUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\PadTabPages\DirectInputControl.resx">
       <DependentUpon>DirectInputControl.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\GameSettingDetailsUserControl.resx">
-      <DependentUpon>GameSettingDetailsUserControl.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\GameDetailsUserControl.resx">
+      <DependentUpon>GameDetailsUserControl.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\ThumbUserControl.resx">
-      <DependentUpon>ThumbUserControl.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\DebugForm.resx">
+      <DependentUpon>DebugForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\MessageBoxForm.resx">
-      <DependentUpon>MessageBoxForm.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\DeveloperToolsForm.resx">
+      <DependentUpon>DeveloperToolsForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\NewDeviceForm.resx">
+    <EmbeddedResource Include="Forms\HardwareForm.resx">
+      <DependentUpon>HardwareForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\LoadPresetsForm.resx">
+      <DependentUpon>LoadPresetsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\MapDeviceToControllerForm.resx">
+      <DependentUpon>MapDeviceToControllerForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\AxisMapUserControl.resx">
+      <DependentUpon>AxisMapUserControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\NewDeviceForm.resx">
       <DependentUpon>NewDeviceForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\ControllerSettingsUserControl.resx">
-      <DependentUpon>ControllerSettingsUserControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Controls\OptionsControl.resx">
-      <DependentUpon>OptionsControl.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\OptionsUserControl.resx">
+      <DependentUpon>OptionsUserControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\PadControl.resx">
       <DependentUpon>PadControl.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\GameSettingsUserControl.resx">
-      <DependentUpon>GameSettingsUserControl.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\PadTabPages\GamesControl.resx">
+      <DependentUpon>GamesControl.cs</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\PromptForm.resx">
+      <DependentUpon>PromptForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\UpdateForm.resx">
+      <DependentUpon>UpdateForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\WebBrowserForm.resx">
+      <DependentUpon>WebBrowserForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
-    <EmbeddedResource Include="Controls\WarningsForm.resx">
-      <DependentUpon>WarningsForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
     <EmbeddedResource Include="Presets\x360ce.Thrustmaster_Dual_Analog.ini" />
     <EmbeddedResource Include="Presets\x360ce.Thrustmaster_Dual_Analog_Mod.ini" />
     <EmbeddedResource Include="Presets\x360ce.Thrustmaster_Dual_Power.ini" />
@@ -295,6 +511,10 @@
     <EmbeddedResource Include="Presets\x360ce.Logitech_WingMan_Formula_Force_GP_USB.ini" />
     <EmbeddedResource Include="Presets\x360ce.SL_6555_SBK.ini" />
     <EmbeddedResource Include="Presets\x360ce.Philips_Wireless_PC_Controller.ini" />
+    <None Include="app.config" />
+    <EmbeddedResource Include="Documents\Help.rtf" />
+    <EmbeddedResource Include="Documents\Help_HidGuardian.rtf" />
+    <Compile Include="Common\SettingsManager.LoadAndSync.cs" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -313,6 +533,9 @@
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
     <EmbeddedResource Include="Resources\x360ce_Games.xml.gz" />
+    <EmbeddedResource Include="Resources\x360ce.Layouts.xml.gz" />
+    <EmbeddedResource Include="Resources\x360ce.Programs.xml.gz" />
+    <EmbeddedResource Include="Resources\ViGEmBus.zip" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="MainForm.resx">
@@ -370,30 +593,27 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.ico" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Error.ico" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Error_32x32.png" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Information.ico" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Information_32x32.png" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Question.ico" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Question_32x32.png" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Warning.ico" />
-    <Content Include="Controls\MessageBoxFormImages\MessageBoxIcon_Warning_32x32.png" />
-    <EmbeddedResource Include="Resources\dinput.dll" />
-    <EmbeddedResource Include="Resources\dinput_x64.dll" />
-    <EmbeddedResource Include="Resources\dinput_x86.dll" />
-    <EmbeddedResource Include="Resources\xinput.dll" />
-    <EmbeddedResource Include="Resources\xinput_x86.dll" />
-    <EmbeddedResource Include="Resources\xinput_x64.dll" />
+    <Content Include="Forms\app.ico" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Error.ico" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Error_32x32.png" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Information.ico" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Information_32x32.png" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Question.ico" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Question_32x32.png" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Warning.ico" />
+    <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Warning_32x32.png" />
+    <EmbeddedResource Include="Resources\DXTweak\DXTweak2.exe" />
+    <EmbeddedResource Include="Resources\ViGEmClient\x64\ViGEmClient.dll" />
+    <EmbeddedResource Include="Resources\ViGEmClient\x86\ViGEmClient.dll" />
+    <EmbeddedResource Include="Resources\SharpDX\SharpDX.RawInput.dll" />
     <EmbeddedResource Include="Resources\x360ce.Engine.dll" />
     <None Include="Images\add_16x16.png" />
     <EmbeddedResource Include="Documents\License.txt" />
     <None Include="Images\app_16x16.png" />
     <Content Include="Images\app_48x48.png" />
     <EmbeddedResource Include="Resources\SharpDX\SharpDX.DirectInput.dll" />
-    <None Include="Resources\SharpDX\SharpDX.DirectInput.xml">
-      <SubType>Designer</SubType>
-    </None>
     <EmbeddedResource Include="Resources\SharpDX\SharpDX.dll" />
+    <EmbeddedResource Include="Resources\HidGuardian.zip" />
     <None Include="Resources\SharpDX\SharpDX.xml">
       <SubType>Designer</SubType>
     </None>
@@ -444,12 +664,27 @@
     <None Include="Images\online_help_16x16.png" />
     <None Include="Images\exit_16x16.png" />
     <None Include="Images\map_to_16x16.png" />
+    <None Include="Images\cloud_computing_upload_16x16.png" />
+    <None Include="Images\cloud_computing_download_16x16.png" />
+    <None Include="Images\edit_note_16x16.png" />
+    <None Include="Images\emulation_library_16x16.png" />
+    <None Include="Images\emulation_none_16x16.png" />
+    <None Include="Images\emulation_virtual_16x16.png" />
+    <None Include="Images\test_16x16.png" />
+    <None Include="Images\save_ok_16x16.png" />
+    <None Include="Images\save_warning_16x16.png" />
+    <None Include="Images\hardware_16x16.png" />
+    <None Include="Images\copy_16x16.png" />
+    <None Include="Images\paste_16x16.png" />
+    <None Include="Images\error_16x16.png" />
+    <None Include="Images\ok_16x16.png" />
+    <None Include="Images\ok_off_16x16.png" />
+    <None Include="Images\fix_off_16x16.png" />
     <Content Include="Images\tip_24x24.png" />
     <None Include="Images\update_16x16.png" />
     <Content Include="Presets\ReadMe.txt" />
     <EmbeddedResource Include="Images\MarkController.png" />
     <EmbeddedResource Include="Images\bullet_ball_glass_red_16x16.png" />
-    <EmbeddedResource Include="Documents\Help.htm" />
     <EmbeddedResource Include="Html2Rtf\xhtml2rtf.xsl" />
     <Content Include="Documents\x360ce.App.source-Exclude.txt" />
     <Content Include="Documents\x360ce.App.source-Include.txt" />
@@ -482,11 +717,40 @@
     <EmbeddedResource Include="Presets\x360ce.Logitech_Driving_Force_GT_USB.ini" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\x360ce.Engine\x360ce.Engine.csproj">
+    <ProjectReference Include="..\Engine\x360ce.Engine.csproj">
       <Project>{f980d78a-9448-4834-a6fe-84797077d309}</Project>
       <Name>x360ce.Engine</Name>
-      <Private>True</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Controls\PadTabPages\MacrosControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\PadTabPages\General\XboxImageControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\PadTabPages\XInputControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Forms\ErrorReportWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Resources\Icons\NavActive.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Resources\Icons\NavNormal.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Resources\Icons\NavRecord.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -503,28 +767,16 @@
   </Target>
   <PropertyGroup>
     <PreBuildEvent>:: Copy Engine.
-SET src=$(SolutionDir)x360ce.Engine\$(OutDir)x360ce.Engine.dll
+SET src=$(SolutionDir)Engine\$(OutDir)x360ce.Engine.dll
 echo copy x360ce.Engine.dll to $(ProjectDir)Resources
 copy /y "%25src%25" "$(ProjectDir)Resources"
 ::
 :: Copy XML Serializer.
-SET src=$(SolutionDir)x360ce.Engine\$(OutDir)x360ce.Engine.XmlSerializers.dll
+SET src=$(SolutionDir)Engine\$(OutDir)x360ce.Engine.XmlSerializers.dll
 IF EXIST "%25src%25" (
 echo copy x360ce.Engine.XmlSerializers.dll to $(ProjectDir)Resources
 copy /y "%25src%25" "$(ProjectDir)Resources"
 )
-::
-ECHO PlatformName = $(PlatformName)
-:: Copy x360ce binaries.
-if $(ConfigurationName) == Debug (
-if $(PlatformName) == x86 (
-copy /y "$(SolutionDir)x360ce\x360ce\bin\Debug\*.dll" "$(TargetDir)"
-copy /y "$(SolutionDir)x360ce\x360ce\bin\Debug\*.pdb" "$(TargetDir)"
-)
-if $(PlatformName) == x64 (
-copy /y "$(SolutionDir)x360ce\x360ce\bin64\Debug\*.dll" "$(TargetDir)"
-copy /y "$(SolutionDir)x360ce\x360ce\bin64\Debug\*.pdb" "$(TargetDir)"
-)
-)</PreBuildEvent>
+</PreBuildEvent>
   </PropertyGroup>
 </Project>

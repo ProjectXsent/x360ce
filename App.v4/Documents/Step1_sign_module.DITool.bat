@@ -1,5 +1,5 @@
 @ECHO OFF
-CALL:SIG "..\..\x360ce\ditool\bin\Debug\ditool.exe"
+CALL:SIG "..\..\Native\ditool\bin\Debug\ditool.exe"
 pause
 
 GOTO:EOF
