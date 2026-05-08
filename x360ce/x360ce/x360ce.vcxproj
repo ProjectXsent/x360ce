@@ -23,7 +23,7 @@
     <ProjectGuid>{303D4435-7541-4357-91B1-CC9DA7E0E926}</ProjectGuid>
     <RootNamespace>x360ce</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -41,12 +41,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -84,18 +84,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)bin64\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)obj64\$(Configuration)\</IntDir>
-    <IncludePath>$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProgramFiles)\Visual Leak Detector\lib\Win64;$(LibraryPath)</LibraryPath>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(DXSDK_DIR)Include;$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x86;$(ProgramFiles)\Visual Leak Detector\lib\Win32;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;X360CE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -142,7 +141,6 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\..\Common;$(ProjectDir)..\InputHook;$(ProjectDir)\..\..\MinHook\include;$(DXSDK_DIR)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <SDLCheck>true</SDLCheck>
       <StringPooling>true</StringPooling>
-      <MinimalRebuild>true</MinimalRebuild>
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>

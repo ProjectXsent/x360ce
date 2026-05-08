@@ -46,15 +46,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
-    <CodeAnalysisLogFile>bin\Debug_x86\x360ce.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisUseTypeNameInSuppression>true</CodeAnalysisUseTypeNameInSuppression>
-    <CodeAnalysisModuleSuppressionsFile>GlobalSuppressions.cs</CodeAnalysisModuleSuppressionsFile>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Prefer32Bit>false</Prefer32Bit>
     <Optimize>false</Optimize>
@@ -66,15 +58,7 @@
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x86</PlatformTarget>
-    <CodeAnalysisLogFile>bin\Release_x86\x360ce.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisUseTypeNameInSuppression>true</CodeAnalysisUseTypeNameInSuppression>
-    <CodeAnalysisModuleSuppressionsFile>GlobalSuppressions.cs</CodeAnalysisModuleSuppressionsFile>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
@@ -84,16 +68,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
-    <CodeAnalysisLogFile>bin\Debug_x64\x360ce.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisUseTypeNameInSuppression>true</CodeAnalysisUseTypeNameInSuppression>
-    <CodeAnalysisModuleSuppressionsFile>GlobalSuppressions.cs</CodeAnalysisModuleSuppressionsFile>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
@@ -103,22 +78,12 @@
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x64</PlatformTarget>
-    <CodeAnalysisLogFile>bin\Release_x64\x360ce.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisUseTypeNameInSuppression>true</CodeAnalysisUseTypeNameInSuppression>
-    <CodeAnalysisModuleSuppressionsFile>GlobalSuppressions.cs</CodeAnalysisModuleSuppressionsFile>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>bin\Debug\</OutputPath>
-    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
@@ -128,9 +93,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>bin\Release\</OutputPath>
-    <CodeAnalysisLogFile>bin\Release\x360ce.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
     <DefineConstants>TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
@@ -631,7 +593,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="app.ico" />
-    <CodeAnalysisDictionary Include="CodeAnalaysisDictionary.xml" />
     <Content Include="Forms\app.ico" />
     <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Error.ico" />
     <Content Include="Forms\MessageBoxFormImages\MessageBoxIcon_Error_32x32.png" />
@@ -804,16 +765,6 @@
       <EmbeddedFiles Include="@(Compile);@(AdditionalFiles)" />
     </ItemGroup>
   </Target>
-  <PropertyGroup>
-    <PostBuildEvent>SET netz=$(SolutionDir)$(ProjectName)\Resources\NetZ\netz.exe
-if $(ConfigurationName) == Release (
-if $(PlatformName) == x86 "%25netz%25" -pl x86 -s -so -z "$(TargetPath)"
-if $(PlatformName) == x64 "%25netz%25" -pl x64 -s -so -z "$(TargetPath)"
-if $(PlatformName) == AnyCPU "%25netz%25" -s -so -z "$(TargetPath)"
-)
-::if $(PlatformName) == x86 COPY /Y "$(TargetPath)" "$(SolutionDir)x360ce\x360ce\bin\$(ConfigurationName)"
-::if $(PlatformName) == x64 COPY /Y "$(TargetPath)" "$(SolutionDir)x360ce\x360ce\bin64\$(ConfigurationName)"</PostBuildEvent>
-  </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>:: Copy Engine.
 SET src=$(SolutionDir)x360ce.Engine\$(OutDir)x360ce.Engine.dll

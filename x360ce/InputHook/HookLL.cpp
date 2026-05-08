@@ -8,6 +8,7 @@
 #include "HookLL.h"
 
 #include <algorithm>
+#include <cctype>
 
 HMODULE(WINAPI* HookLL::TrueLoadLibraryA)(LPCSTR lpLibFileName) = nullptr;
 HMODULE(WINAPI* HookLL::TrueLoadLibraryW)(LPCWSTR lpLibFileName) = nullptr;
@@ -23,7 +24,8 @@ BOOL HookLL::SelfCheckA(LPCSTR lpLibFileName)
 	if (!lpLibFileName) return FALSE;
 
 	std::string strLib(lpLibFileName);
-	std::transform(strLib.begin(), strLib.end(), strLib.begin(), tolower);
+	std::transform(strLib.begin(), strLib.end(), strLib.begin(),
+		[](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); });
 
 	if (strLib.find("xinput1_4") != std::string::npos ||
 		strLib.find("xinput1_3") != std::string::npos ||

@@ -19,15 +19,13 @@
     <DebugType>embedded</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;CODE_ANALYSIS,NETFRAMEWORK</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NETFRAMEWORK</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -39,8 +37,6 @@
     <WarningLevel>4</WarningLevel>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
@@ -49,11 +45,9 @@
     <DefineConstants>TRACE;DEBUG;WIN64</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
     <DebugType>full</DebugType>
     <WarningLevel>1</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
@@ -63,8 +57,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE</DefineConstants>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Prefer32Bit>false</Prefer32Bit>
@@ -75,12 +67,10 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
     <DebugType>full</DebugType>
     <DocumentationFile>
     </DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
@@ -90,8 +80,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <CodeAnalysisRuleSet>
-    </CodeAnalysisRuleSet>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <Prefer32Bit>false</Prefer32Bit>
@@ -104,10 +92,10 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="SharpDX, Version=2.6.2.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\x360ce.App.Beta\Resources\SharpDX\SharpDX.dll</HintPath>
+      <HintPath>..\x360ce.App.4x\Resources\SharpDX\SharpDX.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX.DirectInput">
-      <HintPath>..\x360ce.App.Beta\Resources\SharpDX\SharpDX.DirectInput.dll</HintPath>
+      <HintPath>..\x360ce.App.4x\Resources\SharpDX\SharpDX.DirectInput.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />

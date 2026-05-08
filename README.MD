@@ -47,18 +47,13 @@ Games that work with x360ce can be found on the [Compatibility List](https://git
 
 # System Requirements
 
-  1. Windows Vista or newer.
-  1. [.NET 3.5 (also installs 2.0 and 3.0)](http://www.microsoft.com/en-us/download/details.aspx?id=22) (included in Windows 7)
-  1. [.NET 4.0 (link to 4.6, also installs 4.0)](http://www.microsoft.com/en-us/download/details.aspx?id=48130) (included in Windows 8 and 10)
+  1. Windows 10 or newer.
+  1. [.NET Framework 4.x](http://www.microsoft.com/en-us/download/details.aspx?id=48130) (included in Windows 10 and 11)
   1. [DirectX End-User Runtime (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) (required regardless of OS)
-  1. [Visual C++ Redistributable for Visual Studio 2013](http://www.microsoft.com/en-us/download/details.aspx?id=40784) (**for x64 systems install both x86 and x64 redistributables**)
-  1. If you upgraded to Windows 10, you must Uninstall and Reinstall the Visual C++ Redistributable
+  1. [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x86.exe) (**for x64 systems install both x86 and x64 redistributables**)
 
 Notes:
   * Most game's executables are 32-bit and require x86 x360ce and also the x86 redistributable.
-  * Vista users can obtain .NET 3.5 from the above link, and Windows 8 users can enable it in [Programs and Features - Turn Windows Features on and off.](http://msdn.microsoft.com/en-us/library/hh506443.aspx)
-  * **.NET MUST be installed prior to the DirectX webupdate as it checks that .NET 2.0/3.0/3.5 is installed and skips the Managed DirectX framework if it is not.**
-  * The full DirectX Redistributable will always install the file, however it's best to have .NET 3.5 installed anyhow as quite a few XInput titles utilize .NET for internal dependencies.
 
 # Files
 

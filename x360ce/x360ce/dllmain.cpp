@@ -8,12 +8,6 @@
 #include "ControllerManager.h"
 #include "InputHookManager.h"
 
-#ifdef _DEBUG
-// Cannot open source file "vld.h" error means then you need to install
-// "Visual Leak Detector for Visual C++" from https ://kinddragon.github.io/vld
-#include <vld.h> 
-#endif
-
 VOID InitInstance()
 {
 	IniFile ini;
