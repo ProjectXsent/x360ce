@@ -2,8 +2,8 @@
 #ifndef SVN_REV_H
 #define SVN_REV_H
 
-#define SVN_REV         2587
-#define SVN_REVSTR      "2587"
+#define SVN_REV         2588
+#define SVN_REVSTR      "2588"
 #define SVN_REVDATE     "2026-05-08"
 #define SVN_REVSTAMP    20260508L
 #define SVN_REVMODIFIED 1

@@ -63,20 +63,14 @@
       <Build Solution="*|APP_x86_v3" Project="false" />
     </Project>
   </Folder>
-  <Project Path="x360ce.App.3x/x360ce.App.v3.csproj" Id="737b79b1-5d5c-46d8-9d2b-beab460e42f0">
-    <Platform Solution="*|DLL_x64_v3" Project="x64" />
-    <Platform Solution="*|DLL_x86_v3" Project="x86" />
-    <Platform Solution="Debug|APP_x64_v3" Project="x64" />
-    <Platform Solution="Debug|APP_x86_v3" Project="x86" />
+  <Project Path="x360ce.App.v3/x360ce.App.v3.csproj" Id="737b79b1-5d5c-46d8-9d2b-beab460e42f0">
+    <Platform Solution="*|APP_x64_v3" Project="x64" />
+    <Platform Solution="*|APP_x86_v3" Project="x86" />
     <Build Solution="*|APP_Any_v4" Project="false" />
     <Build Solution="*|DLL_x64_v3" Project="false" />
     <Build Solution="*|DLL_x86_v3" Project="false" />
   </Project>
-  <Project Path="x360ce.App.4x/x360ce.App.v4.csproj" Id="00a8380d-72cb-4ad3-a8c4-0af44ba2aee0">
-    <Platform Solution="*|DLL_x64_v3" Project="x64" />
-    <Platform Solution="*|DLL_x86_v3" Project="x86" />
-    <Platform Solution="Debug|APP_x64_v3" Project="x64" />
-    <Platform Solution="Debug|APP_x86_v3" Project="x86" />
+  <Project Path="x360ce.App.v4/x360ce.App.v4.csproj" Id="00a8380d-72cb-4ad3-a8c4-0af44ba2aee0">
     <Build Solution="*|APP_x64_v3" Project="false" />
     <Build Solution="*|APP_x86_v3" Project="false" />
     <Build Solution="*|DLL_x64_v3" Project="false" />
@@ -103,10 +97,6 @@
     <Build Solution="*|DLL_x86_v3" Project="false" />
   </Project>
   <Project Path="x360ce.Web/x360ce.Web.csproj" Id="ee2589b6-b2f3-44f9-a95c-17ebf74788fb">
-    <Platform Solution="*|APP_x64_v3" Project="x64" />
-    <Platform Solution="*|APP_x86_v3" Project="x86" />
-    <Platform Solution="*|DLL_x64_v3" Project="x64" />
-    <Platform Solution="*|DLL_x86_v3" Project="x86" />
     <Build Solution="*|APP_x64_v3" Project="false" />
     <Build Solution="*|APP_x86_v3" Project="false" />
     <Build Solution="*|DLL_x64_v3" Project="false" />

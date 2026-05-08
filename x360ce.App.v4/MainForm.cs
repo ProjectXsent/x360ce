@@ -1188,8 +1188,6 @@ namespace x360ce.App
 
 		#region Current Game
 
-		string LastActivePath;		
-
 		private void InitGameToCustomizeComboBox()
 		{
 			GameToCustomizeComboBox.ComboBox.DataSource = SettingsManager.UserGames.Items;

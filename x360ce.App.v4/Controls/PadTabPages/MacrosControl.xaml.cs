@@ -18,7 +18,7 @@ namespace x360ce.App.Controls
 	public partial class UserMacrosControl : UserControl, IDisposable
 	{
 
-		public IPadControl Parent;
+		public IPadControl PadControl;
 
 		public UserMacrosControl()
 		{
@@ -33,7 +33,7 @@ namespace x360ce.App.Controls
 			// Subscribe to global events.
 			Global.UpdateControlFromStates += Global_UpdateControlFromStates;
 			// Subscribe to parent control events.
-			Parent.OnSettingChanged += Parent_OnSettingChanged;
+			PadControl.OnSettingChanged += Parent_OnSettingChanged;
 		}
 
 		private void Parent_OnSettingChanged(object sender, JocysCom.ClassLibrary.EventArgs<UserSetting> e)

@@ -28,7 +28,7 @@ bool IniFile::Save(const std::string& filename)
 			ss << commentit->second << std::endl;
 		const std::string& keyval = ss.str();
 		DWORD outCount;
-		WriteFile(hFile, keyval.c_str(), keyval.size(), &outCount, NULL);
+		WriteFile(hFile, keyval.c_str(), static_cast<DWORD>(keyval.size()), &outCount, NULL);
 
 		if (sectit->Save(hFile))
 			out = true;
@@ -185,7 +185,7 @@ bool IniFile::Section::Save(HANDLE hFile)
 	const std::string& sectionName = ss.str();
 
 	DWORD outCount;
-	WriteFile(hFile, sectionName.c_str(), sectionName.size(), &outCount, NULL);
+	WriteFile(hFile, sectionName.c_str(), static_cast<DWORD>(sectionName.size()), &outCount, NULL);
 
 	bool ret = false;
 
@@ -202,7 +202,7 @@ bool IniFile::Section::Save(HANDLE hFile)
 		const std::string& keyval = ss.str();
 
 		DWORD outCount;
-		WriteFile(hFile, keyval.c_str(), keyval.size(), &outCount, NULL);
+		WriteFile(hFile, keyval.c_str(), static_cast<DWORD>(keyval.size()), &outCount, NULL);
 		ret = keyval.size() == outCount;
 	}
 	return ret;
