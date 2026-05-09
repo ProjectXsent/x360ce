@@ -22,13 +22,42 @@ The `.ai/` folder is the **single source of truth** for all AI agent configurati
 
 The file `agents.json` (next to this SKILL.md) defines each agent's sync targets:
 
-| Agent | Instructions | Skills | Project Agents | Global Agents |
-|-------|-------------|--------|----------------|---------------|
-| **Cline** | `.clinerules/` (multiple) | — | — | — |
-| **Roo Code** | `.roo/rules/` (multiple) | `.roo/skills/` | `.roomodes` (JSON) | `{AppData}/.../custom_modes.yaml` (JSON) |
-| **GitHub Copilot** | `.github/copilot-instructions.md` (single) | `.github/skills/` | `.github/agents/` | — |
-| **OpenAI Codex** | `AGENTS.md` (single) | — | — | — |
-| **Claude Code** | `.claude/` (multiple) | `.claude/skills/` | `.claude/commands/` | `~/.claude/commands/` |
+| Agent | Instructions | Skills | Project Agents | Global Agents | Shared `.agents/` |
+|-------|-------------|--------|----------------|---------------|-------------------|
+| **Cline** | `.clinerules/` (multiple) | — | — | — | ❌ |
+| **Roo Code** ⚠️ sunset 2026-05-15 | `.roo/rules/` (multiple) | `.roo/skills/` | `.roomodes` (JSON) | `{AppData}/.../custom_modes.yaml` (JSON) | ✅ skills (project + user) |
+| **GitHub Copilot** | `.github/copilot-instructions.md` (single) | `.github/skills/` | `.github/agents/` | — | ✅ skills (project + user) |
+| **OpenAI Codex** | `AGENTS.md` (single) | — | — | — | ✅ skills (project + user) |
+| **Claude Code** | `.claude/` (multiple) | `.claude/skills/` | `.claude/commands/` | `~/.claude/commands/` | ❌ |
+| **Kilo Code** | `.kilo/rules/` (multiple) | `.kilo/skills/` | `.kilo/agents/` | `~/.config/kilo/agent/` | ✅ skills (project + user) |
+| **Gemini CLI** | `GEMINI.md` (single) | `.gemini/skills/` | `.gemini/agents/` | `~/.gemini/agents/` | ✅ skills (project + user) |
+
+### Path arrays — primary + obsolete
+
+`skills` and `globalSkills` in `agents.json` are **ordered arrays**:
+
+- **Position 0** is the PRIMARY target. The sync script mirrors only there.
+- **Positions 1+** are OBSOLETE alternatives the agent may still read. The script does not write to them, but it scans for them after each sync and reports any that still exist on disk so you can clean them up.
+
+Multiple agents may declare the same primary path (e.g. Roo Code, Kilo Code, Codex, Copilot, and Gemini all share `.agents/skills`). The script deduplicates so each unique target is mirrored once.
+
+**Migration is just rearranging the array.** When a vendor adopts the universal `.agents/` convention, prepend the new path:
+
+```jsonc
+// Before — Claude Code only reads its own folder
+"skills": [".claude/skills"]
+
+// After — Claude added .agents/skills support; promote to primary
+"skills": [".agents/skills", ".claude/skills"]
+```
+
+The next sync will mirror to `.agents/skills` and report `.claude/skills` as obsolete (delete when ready).
+
+### Universal `.agents/` folder
+
+Several modern agents read skills from a shared `.agents/skills/` (project) and `~/.agents/skills/` (user) — Codex CLI, GitHub Copilot, Roo Code, Kilo Code, Gemini CLI, OpenCode, Antigravity. To opt an agent in, just put `.agents/skills` at position 0 of its `skills` array.
+
+Cline and Claude Code do **not** currently support the `.agents/` convention — they keep using their own paths. Instructions are not synced into `.agents/` because the universal convention there is `AGENTS.md` (or `GEMINI.md`) at the repository root, already covered by the Codex/Gemini single-file targets. MCP servers are tracked per-agent in `agents.json` for reference only — MCP sync is not performed by this script.
 
 **IMPORTANT:** When asked to modify skills, instructions, or custom agents, you MUST:
 
@@ -77,6 +106,14 @@ When you encounter a path in an agent-specific folder, map it to `.ai/`:
 | `.claude/*.instructions.md` | `.ai/*.instructions.md` |
 | `.claude/skills/<name>/SKILL.md` | `.ai/skills/<name>/SKILL.md` |
 | `.claude/commands/<name>.md` | `.ai/agents/<name>.md` |
+| `.agents/skills/<name>/SKILL.md` | `.ai/skills/<name>/SKILL.md` |
+| `~/.agents/skills/<name>/SKILL.md` | `.ai/.global/skills/<name>/SKILL.md` |
+| `.kilo/rules/*.md` | `.ai/*.instructions.md` |
+| `.kilo/skills/<name>/SKILL.md` | `.ai/skills/<name>/SKILL.md` |
+| `.kilo/agents/<name>.md` | `.ai/agents/<name>.md` |
+| `GEMINI.md` | `.ai/instructions.md` (generated, single-file like AGENTS.md) |
+| `.gemini/skills/<name>/SKILL.md` | `.ai/skills/<name>/SKILL.md` |
+| `.gemini/agents/<name>.md` | `.ai/agents/<name>.md` |
 
 **Example:** If asked to update `.roo/skills/ai-self-improvement/SKILL.md`, you must edit `.ai/skills/ai-self-improvement/SKILL.md` instead.
 
@@ -98,8 +135,11 @@ When you encounter a path in an agent-specific folder, map it to `.ai/`:
 5. Do **not** edit generated outputs directly (they are produced by the sync script):
    - `.roo/rules/`, `.roo/skills/`
    - `.github/copilot-instructions.md`, `.github/skills/`, `.github/agents/`
-   - `AGENTS.md`
+   - `AGENTS.md`, `GEMINI.md`
    - `.claude/*.instructions.md`, `.claude/skills/`, `.claude/commands/`
+   - `.kilo/rules/`, `.kilo/skills/`, `.kilo/agents/`
+   - `.gemini/skills/`, `.gemini/agents/`
+   - `.agents/skills/`, `~/.agents/skills/` (universal convention)
 6. **Test changes before syncing** — verify scripts execute correctly and changes work as expected.
 7. After testing, run the sync script to apply to all agents.
 
@@ -133,7 +173,20 @@ On Windows, `python` may need to be `py` or `python3` depending on how Python is
 | `ALL` | Update all known agent outputs |
 | Agent name | Update a specific agent (e.g. `"Claude Code"`, `roo-code`) |
 | `--global` | Also sync `.ai/.global/agents/` to user-level paths (off by default) |
-| `--no-clear` | Do not clear the console on start |
+| `--cleanup-obsolete` | After sync, prompt to delete legacy folders flagged as obsolete in `agents.json` (positions 1+ of `skills`/`globalSkills` arrays). Safe — y/N confirmation required. |
+| `--no-clear` | Do not clear the console on start; also skips the 4-second exit pause (signals scripted/piped use). |
+
+When invoked without arguments, the menu offers: AUTO, AUTO + Global, Cleanup (option 3), then numbered entries for each agent. `ALL` / `ALL + Global` are still supported as CLI parameters but no longer in the menu — they were rarely used.
+
+### Menu indicators
+
+- **Bold green name** — agent is *detected* in this repository (its signature folder or instructions target exists on disk).
+- **`[supported]` suffix** — agent is *fully `.agents/`-compatible*, meaning every one of its outputs lands under `.agents/` (or — for single-file outputs only — at the repository root). Such an agent needs **no agent-specific folder**. Currently only **OpenAI Codex** qualifies (`AGENTS.md` + `.agents/skills/`). The flag is computed from `agents.json`, so any other agent automatically lights up the moment its config is rewritten to drop agent-specific paths.
+
+### Detection and stale-file behavior
+
+- **Empty folders count as enabled.** AUTO detection treats an agent as enabled when its target folder exists at the repository root, even if it is empty. Wiping the contents of `.roo/rules/`, `.clinerules/`, or `.claude/` does not disable the agent — the next sync repopulates it. For single-file agents (Codex, Copilot), the file or its companion folder counts.
+- **Stale instruction files are removed before copy.** Before copying instructions, the script deletes any `*instructions.md` files in the target folder that are not present in `.ai/`. Renaming or removing a source file removes the matching target file on the next sync, instead of leaving a stale copy behind.
 
 ## Single source of truth
 

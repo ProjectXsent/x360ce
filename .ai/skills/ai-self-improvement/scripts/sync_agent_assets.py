@@ -30,6 +30,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -376,6 +377,40 @@ def sync_global_skills(
     )
 
 
+def report_obsolete_paths(
+    label: str,
+    obsolete: dict[str, list[str]],
+    primary_targets,
+    repo_relative: bool,
+) -> None:
+    """Warn about obsolete (position 1+) paths that still exist on disk.
+
+    `obsolete` maps a path to the list of agents that declared it as a legacy
+    alternative. A path that is also the primary target of some other agent is
+    NOT obsolete — that agent still writes there — so it is filtered out.
+    `repo_relative=True` resolves paths under REPO_ROOT (project-level
+    targets); `False` treats them as already-resolved absolute paths.
+    """
+    if not obsolete:
+        return
+    primary_set = set(primary_targets)
+    flagged: list[tuple[str, Path, list[str]]] = []
+    for path_str, agents in obsolete.items():
+        if path_str in primary_set:
+            continue
+        target = (REPO_ROOT / path_str) if repo_relative else Path(path_str)
+        if target.exists():
+            flagged.append((path_str, target, agents))
+    if not flagged:
+        return
+    print(f"\n--- Obsolete {label} paths detected ---")
+    print("These paths are listed as legacy alternatives in agents.json and still")
+    print("exist on disk. The script does NOT write to them. Delete them when ready:")
+    for path_str, target, agents in flagged:
+        users = ", ".join(agents)
+        print(f"  - {target}  (legacy for: {users})")
+
+
 def load_removed_skills(removed_skills_path: Path) -> list[str]:
     """Load the list of skill folder names to remove from user-level paths."""
     if not removed_skills_path.is_file():
@@ -396,9 +431,30 @@ def load_removed_skills(removed_skills_path: Path) -> list[str]:
 
 # ── Sync operations ──────────────────────────────────────────────────────────
 
+def remove_stale_instruction_files(target_dir: Path, source_files: list[Path]) -> None:
+    """Delete any *instructions.md files in target_dir that are not in source_files.
+
+    Keeps the target in sync with the .ai/ source set so renamed or removed
+    instruction files do not linger and confuse downstream agents.
+    """
+    if not target_dir.is_dir():
+        return
+    source_names = {sf.name for sf in source_files}
+    for existing in target_dir.glob("*instructions.md"):
+        if existing.name not in source_names:
+            try:
+                existing.unlink()
+                print(f"Removed stale: {existing}")
+            except OSError as exc:
+                raise RuntimeError(f"Failed to remove stale instruction file: {existing}") from exc
+
+
 def sync_multiple_file_instructions(agent_name: str, target_directory: str, source_files: list[Path]) -> None:
     print(f"\n--- Updating {agent_name} Instructions ---")
     target_dir = REPO_ROOT / target_directory
+    ensure_directory(target_dir)
+
+    remove_stale_instruction_files(target_dir, source_files)
 
     for sf in source_files:
         copy_file_if_different(sf, target_dir / sf.name)
@@ -460,9 +516,12 @@ def sync_copilot_folder_instructions(instructions_config: dict, source_files: li
     copy_file_if_different(main_source, copilot_target)
 
     folder_target = REPO_ROOT / instructions_config["folderTarget"]
-    for sf in source_files:
-        if sf.name.lower() == str(main_name).lower():
-            continue
+    ensure_directory(folder_target)
+    # The main file is concatenated into copilot-instructions.md, so it should
+    # not also live in the folder target — exclude it from the "kept" set.
+    folder_sources = [sf for sf in source_files if sf.name.lower() != str(main_name).lower()]
+    remove_stale_instruction_files(folder_target, folder_sources)
+    for sf in folder_sources:
         copy_file_if_different(sf, folder_target / sf.name)
 
 
@@ -521,20 +580,123 @@ def sync_agents_to_target(
 
 # ── Agent detection (AUTO mode) ──────────────────────────────────────────────
 
-def test_has_instruction_files(path: Path, pattern: str = "*instructions.md") -> bool:
-    if not path.is_dir():
+def _agent_marker_folders(agent: dict) -> list[Path]:
+    """Top-level project-relative folders that uniquely identify this agent.
+
+    Used as additional detection signals so that creating `.roo/`, `.kilo/`,
+    `.gemini/`, etc. is enough to enable the agent — the user does not have
+    to populate the inner `rules/` or `skills/` subfolders first. Filters out
+    paths that are shared (.agents) or too generic (.github).
+    """
+    GENERIC = {".github"}    # always exists in GitHub repos — bad signal
+    candidates: set[str] = set()
+
+    def add_first_segment(raw: str) -> None:
+        if not raw:
+            return
+        norm = raw.replace("\\", "/")
+        if "/" not in norm:
+            return    # root-level files (AGENTS.md, GEMINI.md, .roomodes)
+        first = norm.split("/", 1)[0]
+        if first and not first.startswith(".agents") and first not in GENERIC:
+            candidates.add(first)
+
+    add_first_segment(agent.get("instructions", {}).get("target", ""))
+    for path in (agent.get("skills") or []):
+        add_first_segment(path)
+    add_first_segment((agent.get("agents") or {}).get("target", ""))
+    mcp_cfg = (agent.get("mcp") or {}).get("config", "")
+    add_first_segment(mcp_cfg)
+
+    return [REPO_ROOT / c for c in candidates]
+
+
+def is_fully_shared(agent: dict) -> bool:
+    """True if every output of this agent lands under `.agents/` or — for
+    single-file outputs only — at the repository root. Such an agent needs no
+    agent-specific folder at all (e.g. OpenAI Codex: AGENTS.md + .agents/skills/).
+
+    Distinction matters: `AGENTS.md` is a root *file* (universal protocol, OK),
+    but `.clinerules` is a root *folder* (agent-specific, NOT shared).
+    """
+    def under_agents(raw: str) -> bool:
+        norm = raw.replace("\\", "/")
+        return (
+            norm.startswith(".agents/")
+            or norm.startswith("{UserProfile}/.agents/")
+            or norm.startswith("{Home}/.agents/")
+            or norm.startswith("~/.agents/")
+        )
+
+    def shared_file(raw: str) -> bool:
+        if not raw:
+            return True
+        norm = raw.replace("\\", "/")
+        # A root file (no separator) qualifies. Anything with a path segment
+        # must be under `.agents/`.
+        return ("/" not in norm) or under_agents(raw)
+
+    def shared_folder(raw: str) -> bool:
+        return not raw or under_agents(raw)
+
+    instr = agent.get("instructions") or {}
+    if instr.get("mode") == "single-file":
+        if not shared_file(instr.get("target", "")):
+            return False
+        if not shared_folder(instr.get("folderTarget", "")):
+            return False
+    elif instr.get("mode") == "multiple-files":
+        if not shared_folder(instr.get("target", "")):
+            return False
+
+    skills = agent.get("skills") or []
+    if skills and not under_agents(skills[0]):
         return False
-    return any(path.glob(pattern))
+
+    global_skills = agent.get("globalSkills") or []
+    if global_skills and not under_agents(global_skills[0]):
+        return False
+
+    ag = agent.get("agents") or {}
+    if ag.get("target"):
+        # `roomodes-json` format writes a single file (e.g. `.roomodes`); other
+        # formats mirror to a folder.
+        check = shared_file if ag.get("format") == "roomodes-json" else shared_folder
+        if not check(ag["target"]):
+            return False
+
+    ga = agent.get("globalAgents") or {}
+    if ga.get("target") and not under_agents(ga["target"]):
+        return False
+
+    return True
 
 
 def test_agent_exists(agent: dict) -> bool:
+    """Detect whether an agent is enabled in this repository.
+
+    An agent counts as enabled when ANY of these is true:
+      - the configured instructions target exists (file or folder, even empty);
+      - the GitHub Copilot companion `folderTarget` exists;
+      - any agent-specific marker folder exists (e.g. `.roo`, `.kilo`, `.gemini`).
+
+    The marker-folder check lets a user signal "enable Roo Code" by simply
+    creating `.roo/`, without having to also create `.roo/rules/`.
+    """
     instr = agent["instructions"]
     target = REPO_ROOT / instr["target"]
     mode = instr["mode"]
-    if mode == "multiple-files":
-        return test_has_instruction_files(target)
+    if mode == "multiple-files" and target.is_dir():
+        return True
     if mode == "single-file":
-        return target.is_file()
+        if target.is_file():
+            return True
+        folder_target = instr.get("folderTarget")
+        if folder_target and (REPO_ROOT / folder_target).is_dir():
+            return True
+    for marker in _agent_marker_folders(agent):
+        if marker.is_dir():
+            return True
     return False
 
 
@@ -542,6 +704,80 @@ def get_agent_format(config_obj: dict | None) -> str:
     if not config_obj:
         return "mirror"
     return config_obj.get("format") or "mirror"
+
+
+def collect_obsolete_paths(all_agents: list[dict]) -> list[tuple[Path, list[str]]]:
+    """Walk every agent in the config and return obsolete (path, agents) pairs.
+
+    A path is obsolete when it appears at position 1+ of an agent's `skills`
+    or `globalSkills` array AND no other agent claims it as primary AND it
+    actually exists on disk. Paths are returned as resolved absolute Paths.
+    """
+    primaries: set[str] = set()
+    for a in all_agents:
+        for paths in (a.get("skills") or [], a.get("globalSkills") or []):
+            if paths:
+                primaries.add(paths[0])
+
+    obsolete: dict[str, list[str]] = {}     # absolute path -> [agents]
+    for a in all_agents:
+        for paths in (a.get("skills") or [], a.get("globalSkills") or []):
+            for legacy in paths[1:]:
+                if legacy in primaries:
+                    continue
+                # `{UserProfile}`/`~` style → resolve to absolute; otherwise
+                # treat as project-relative.
+                if "{" in legacy or legacy.startswith("~"):
+                    abs_path = Path(resolve_target_path(legacy))
+                else:
+                    abs_path = REPO_ROOT / legacy
+                key = str(abs_path)
+                if abs_path.exists():
+                    obsolete.setdefault(key, []).append(a["name"])
+    return [(Path(k), v) for k, v in sorted(obsolete.items())]
+
+
+def cleanup_obsolete_interactive(all_agents: list[dict]) -> int:
+    """List obsolete folders, prompt y/N, delete on confirmation. Returns count deleted."""
+    flagged = collect_obsolete_paths(all_agents)
+    if not flagged:
+        print("\nNo obsolete folders found on disk. Nothing to clean up.")
+        return 0
+    print("\n--- Obsolete folders flagged for cleanup ---")
+    for path, agents in flagged:
+        print(f"  - {path}  (legacy for: {', '.join(agents)})")
+    answer = input(f"\nDelete these {len(flagged)} obsolete folders? [y/N]: ").strip().lower()
+    if answer not in ("y", "yes"):
+        print("Cleanup cancelled.")
+        return 0
+    deleted = 0
+    for path, _agents in flagged:
+        try:
+            if path.is_dir():
+                shutil.rmtree(path)
+            elif path.is_file():
+                path.unlink()
+            else:
+                continue
+            print(f"Deleted: {path}")
+            deleted += 1
+        except OSError as exc:
+            print(f"FAILED to delete {path}: {exc}", file=sys.stderr)
+    print(f"\nCleanup complete. Removed {deleted}/{len(flagged)} folders.")
+    return deleted
+
+
+def _wait_before_exit(args) -> None:
+    """Pause briefly so users running the script from a window can read the output.
+
+    Skipped when --no-clear is set (signals scripted/piped use).
+    """
+    if getattr(args, "no_clear", False):
+        return
+    try:
+        time.sleep(4)
+    except KeyboardInterrupt:
+        pass
 
 
 # ── Main logic ───────────────────────────────────────────────────────────────
@@ -555,10 +791,13 @@ def main() -> int:
     parser.add_argument("--global", dest="global_flag", action="store_true",
                         help="Also sync global agents to user-level paths")
     parser.add_argument("--no-clear", action="store_true", help="Do not clear the console")
+    parser.add_argument("--cleanup-obsolete", dest="cleanup_obsolete", action="store_true",
+                        help="After sync, prompt to delete legacy folders flagged as obsolete in agents.json")
     args = parser.parse_args()
 
     mode = " ".join(args.mode).strip() if args.mode else ""
     global_flag = args.global_flag
+    cleanup_flag = args.cleanup_obsolete
 
     if not args.no_clear:
         # Cross-platform "clear".
@@ -573,18 +812,23 @@ def main() -> int:
         print(f"WARNING: No '*instructions.md' files found in '{AI_DIR}'. Nothing to process.")
         return 0
 
-    print(f"Source instruction files in '{AI_DIR}':")
-    for sf in source_instruction_files:
-        print(f"- {sf.name}")
-
     src_skills_dir = REPO_ROOT / ".ai" / "skills"
     src_agents_dir = REPO_ROOT / ".ai" / "agents"
     src_global_agents_dir = REPO_ROOT / ".ai" / ".global" / "agents"
     src_global_skills_dir = REPO_ROOT / ".ai" / ".global" / "skills"
     removed_skills_path = REPO_ROOT / ".ai" / ".global" / "removed-skills.json"
 
+    def count_subdirs(p: Path) -> int:
+        return sum(1 for c in p.iterdir() if c.is_dir()) if p.is_dir() else 0
+
+    print(
+        f"Project instructions: {len(source_instruction_files)}"
+        f", project skills: {count_subdirs(src_skills_dir)}"
+        f", global skills: {count_subdirs(src_global_skills_dir)}"
+    )
+
     if global_flag:
-        print("\nGlobal agent + skills sync: ENABLED (--global flag)")
+        print("Global agent + skills sync: ENABLED (--global flag)")
 
     all_agents: list[dict] = config["agents"]
     agents_to_update: list[dict] = []
@@ -596,30 +840,43 @@ def main() -> int:
     elif mode_upper == "AUTO":
         print("Selected: AUTO (parameter mode)")
         agents_to_update = [a for a in all_agents if test_agent_exists(a)]
-        print("Agents to update:")
-        for a in agents_to_update:
-            print(f"- {a['name']}")
     elif mode == "":
         detected = [a for a in all_agents if test_agent_exists(a)]
-        print("\nDetected agents with instruction files:")
-        if detected:
-            for a in detected:
-                print(f"- {a['name']}")
-        else:
-            print("(none)")
+        detected_set = {id(a) for a in detected}
 
+        # ANSI bold-green for detected agents (modern Windows 10+/Linux/macOS terminals).
+        ANSI_DETECTED = "\033[1;32m"
+        ANSI_RESET = "\033[0m"
+
+        # Width of the name column — pads so all menu rows line up regardless
+        # of the longest entry. +2 trailing spaces for breathing room.
+        name_width = max(
+            len("AUTO + Global"),
+            len("Cleanup"),
+            *(len(a["name"]) for a in all_agents),
+        ) + 2
+
+        # Menu fixed slots:
+        #   1   AUTO
+        #   2   AUTO + Global
+        #   3   Cleanup
+        #   4+  individual agents (highlighted if detected)
         print()
         print("==============================================================")
         print("Select Agent Instruction Set to Update")
         print("--------------------------------------------------------------")
-        print("1. AUTO           - Update detected agents (project level only)")
-        print("2. AUTO + Global  - Update detected agents + global agents")
-        print("3. ALL            - Update all agents (project level only)")
-        print("4. ALL + Global   - Update all agents + global agents")
+        print(f"{1:2}. {'AUTO':<{name_width}}- Update detected agents (project level only)")
+        print(f"{2:2}. {'AUTO + Global':<{name_width}}- Update detected agents + global agents")
+        print(f"{3:2}. {'Cleanup':<{name_width}}- Remove obsolete folders (interactive)")
         print("--------------------------------------------------------------")
-        for i, agent in enumerate(all_agents, start=5):
-            print(f"{i}. {agent['name']}")
-        print("0. Exit")
+        for i, agent in enumerate(all_agents, start=4):
+            name_padded = f"{agent['name']:<{name_width}}"
+            suffix = "[supported]" if is_fully_shared(agent) else ""
+            if id(agent) in detected_set:
+                print(f"{i:2}. {ANSI_DETECTED}{name_padded}{ANSI_RESET}{suffix}")
+            else:
+                print(f"{i:2}. {name_padded}{suffix}")
+        print(f"{0:2}. Exit")
         print("==============================================================")
         print()
         selection = input("Enter your choice: ").strip()
@@ -635,15 +892,13 @@ def main() -> int:
             global_flag = True
             print("Selected: AUTO + Global")
         elif selection == "3":
-            agents_to_update = list(all_agents)
-            print("Selected: ALL")
-        elif selection == "4":
-            agents_to_update = list(all_agents)
-            global_flag = True
-            print("Selected: ALL + Global")
+            print("Selected: Cleanup obsolete folders")
+            cleanup_obsolete_interactive(all_agents)
+            _wait_before_exit(args)
+            return 0
         else:
             try:
-                idx = int(selection) - 5
+                idx = int(selection) - 4
             except ValueError:
                 raise RuntimeError("Invalid selection.")
             if 0 <= idx < len(all_agents):
@@ -662,7 +917,7 @@ def main() -> int:
         agents_to_update = [found]
         print(f"Selected: {found['name']} (parameter mode)")
 
-    # ── Sync each agent (project level) ─────────────────────────────────────
+    # ── Sync per-agent instructions and project custom-agents ───────────────
 
     for agent in agents_to_update:
         instr = agent["instructions"]
@@ -677,16 +932,39 @@ def main() -> int:
             else:
                 sync_single_file_instructions(agent["name"], instr["target"], source_instruction_files)
 
-        skills = agent.get("skills")
-        if skills and skills.get("target"):
-            dst_skills_dir = REPO_ROOT / skills["target"]
-            mirror_directory(src_skills_dir, dst_skills_dir, f"{agent['name']} skills ({skills['target']})")
-
         agents_cfg = agent.get("agents")
         if agents_cfg and agents_cfg.get("target"):
             proj_target = str(REPO_ROOT / agents_cfg["target"])
             proj_format = get_agent_format(agents_cfg)
             sync_agents_to_target(agent["name"], src_agents_dir, proj_target, proj_format, f"{agent['name']} project")
+
+    # ── Skills sync (project level) ─────────────────────────────────────────
+    # `skills` is now an ordered array per agent: position 0 is the PRIMARY
+    # target the script mirrors to. Positions 1+ are OBSOLETE alternatives that
+    # the agent may still read but the script no longer writes to. Multiple
+    # agents may share the same primary (e.g. `.agents/skills`) — dedupe so we
+    # only mirror once per unique target.
+
+    primary_skills: dict[str, list[str]] = {}     # target -> [agent names]
+    obsolete_skills: dict[str, list[str]] = {}    # target -> [agent names]
+    for agent in agents_to_update:
+        paths = agent.get("skills") or []
+        if not paths:
+            continue
+        primary_skills.setdefault(paths[0], []).append(agent["name"])
+        for legacy in paths[1:]:
+            obsolete_skills.setdefault(legacy, []).append(agent["name"])
+
+    if primary_skills:
+        print("\n==============================================================")
+        print("Skills Sync (project)")
+        print("==============================================================")
+        for target in sorted(primary_skills):
+            supporters = ", ".join(primary_skills[target])
+            label = f"skills [{target}] - used by: {supporters}"
+            mirror_directory(src_skills_dir, REPO_ROOT / target, label)
+
+    report_obsolete_paths("project skills", obsolete_skills, primary_skills.keys(), repo_relative=True)
 
     # ── Global agent sync (only with --global flag) ─────────────────────────
 
@@ -725,19 +1003,34 @@ def main() -> int:
             print(f"Skills marked for removal in {removed_skills_path.name}: "
                   f"{', '.join(removed_list)}")
 
-        any_target = False
+        # Same array convention as project skills: position 0 = primary target
+        # we mirror to, positions 1+ = obsolete alternatives we just report.
+        primary_globals: dict[str, list[str]] = {}    # resolved path -> [agent names]
+        obsolete_globals: dict[str, list[str]] = {}   # resolved path -> [agent names]
         for agent in agents_to_update:
-            gs_cfg = agent.get("globalSkills")
-            if not gs_cfg or not gs_cfg.get("target"):
+            paths = agent.get("globalSkills") or []
+            if not paths:
                 continue
-            any_target = True
-            gs_target = Path(resolve_target_path(gs_cfg["target"]))
-            sync_global_skills(agent["name"], src_global_skills_dir, gs_target, removed_list)
+            primary_globals.setdefault(resolve_target_path(paths[0]), []).append(agent["name"])
+            for legacy in paths[1:]:
+                obsolete_globals.setdefault(resolve_target_path(legacy), []).append(agent["name"])
 
-        if not any_target:
-            print("No agents have a globalSkills.target configured. Skipping.")
+        if not primary_globals:
+            print("No agents have a globalSkills target configured. Skipping.")
+        else:
+            for resolved, supporters in primary_globals.items():
+                label = f"global skills [{resolved}] - used by: {', '.join(supporters)}"
+                sync_global_skills(label, src_global_skills_dir, Path(resolved), removed_list)
 
-    print("\nAll selected operations completed successfully.")
+            report_obsolete_paths("global skills", obsolete_globals, primary_globals.keys(), repo_relative=False)
+
+    print("\n\033[1;32mAll selected operations completed successfully.\033[0m")
+
+    if cleanup_flag:
+        print()
+        cleanup_obsolete_interactive(all_agents)
+
+    _wait_before_exit(args)
     return 0
 
 

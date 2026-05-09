@@ -21,11 +21,11 @@ When the user asks for only one slice of repository understanding—such as proj
 
 ## Required working files
 
-Before analyzing the repository, create and maintain these temporary files under [`.ai/.tmp/`](.ai/.tmp/):
+Before analyzing the repository, create and maintain these temporary files under [`.tmp/`](.tmp/) at the repository root:
 
-- [`.ai/.tmp/repository-analysis.Requirements.md`](.ai/.tmp/repository-analysis.Requirements.md) — a sectioned checklist of what must be captured.
-- [`.ai/.tmp/repository-analysis.TODO.md`](.ai/.tmp/repository-analysis.TODO.md) — the same work converted into an execution checklist.
-- [`.ai/.tmp/repository-analysis.instructions.bak.md`](.ai/.tmp/repository-analysis.instructions.bak.md) — a backup copy of the previous report, but only if [`.ai/repository-analysis.instructions.md`](.ai/repository-analysis.instructions.md) already exists.
+- [`.tmp/repository-analysis.Requirements.md`](.tmp/repository-analysis.Requirements.md) — a sectioned checklist of what must be captured.
+- [`.tmp/repository-analysis.TODO.md`](.tmp/repository-analysis.TODO.md) — the same work converted into an execution checklist.
+- [`.tmp/repository-analysis.instructions.bak.md`](.tmp/repository-analysis.instructions.bak.md) — a backup copy of the previous report, but only if [`.ai/repository-analysis.instructions.md`](.ai/repository-analysis.instructions.md) already exists.
 
 Update the TODO file after each major discovery or writing step. Remove all three temporary files only after the refreshed report has been validated successfully.
 
@@ -45,7 +45,7 @@ Then expand outward from those anchors into the relevant source folders, documen
 
 ### 1. Set up the task
 
-- Create the requirements and TODO files in [`.ai/.tmp/`](.ai/.tmp/).
+- Create the requirements and TODO files in [`.tmp/`](.tmp/) at the repository root.
 - If [`.ai/repository-analysis.instructions.md`](.ai/repository-analysis.instructions.md) exists, back it up before editing.
 - Convert the user request into explicit analysis tasks. If the user asked for a narrow slice, add the minimum surrounding tasks needed to keep the report coherent.
 
@@ -178,7 +178,7 @@ Before finishing, confirm all of the following:
 - Required Mermaid diagrams are present and readable.
 - Build, test, CI/CD, and operational workflows are documented from repository evidence.
 - Valuable content from the previous report was not lost accidentally.
-- Temporary files in [`.ai/.tmp/`](.ai/.tmp/) were deleted after successful validation.
+- Temporary files in [`.tmp/`](.tmp/) were deleted after successful validation.
 
 ## Completion behavior
 
