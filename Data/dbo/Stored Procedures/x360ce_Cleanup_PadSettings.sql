@@ -2,7 +2,7 @@
 AS
 BEGIN
 
--- exec [dbo].[x360ce_CleanupPadSettings]
+-- exec [dbo].[x360ce_Cleanup_PadSettings]
 
 -- Delete settings with no buttons not mapped.
 DELETE
